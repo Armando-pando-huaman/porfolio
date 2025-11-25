@@ -1,9 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.js';
+import AppTest from './App-test.js';  // ← Usa el archivo de prueba
+import './styles/App.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <AppTest />
   </React.StrictMode>
 );
