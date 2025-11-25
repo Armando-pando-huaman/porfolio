@@ -1,7 +1,7 @@
 const { MongoClient } = require('mongodb');
 
 // ✅ USA EL MISMO CLUSTER QUE TU SISTEMA DE COBRANZA (QUE SÍ FUNCIONA)
-const uri = "mongodb+srv://Armandopando:Mongo123@cluster0.pmy6lxe.mongodb.net/porfolio?retryWrites=true&w=majority&appName=Cluster0";
+const uri = "mongodb+srv://Armandopando:Nino.1412@cluster0.pmy6lxe.mongodb.net/porfolio?retryWrites=true&w=majority&appName=Cluster0";
 
 module.exports = async (req, res) => {
   console.log('🚀 Iniciando API /certifications con cluster funcional');
