@@ -4,6 +4,10 @@
   "outputDirectory": "dist",
   "builds": [
     {
+      "src": "api/**/*.cjs",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/**/*.js",
       "use": "@vercel/node"
     }
@@ -19,6 +23,10 @@
     }
   ],
   "functions": {
+    "api/**/*.cjs": {
+      "memory": 1024,
+      "maxDuration": 10
+    },
     "api/**/*.js": {
       "memory": 1024,
       "maxDuration": 10
