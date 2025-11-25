@@ -3,8 +3,11 @@ import './styles/App.css';
 
 function App() {
   const [activeSection, setActiveSection] = useState('inicio');
+  const [certifications, setCertifications] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [dbStatus, setDbStatus] = useState('');
 
-  // Datos estáticos por ahora - después vendrán de MongoDB
+  // Datos estáticos
   const datosPersonales = {
     nombre: "Armando Edgardo Pando Huaman",
     titulo: "Desarrollador Full Stack Junior",
@@ -53,12 +56,6 @@ function App() {
       descripcion: "Sistema de monitoreo y optimización de infraestructura con Docker",
       tecnologias: ["Docker", "Linux", "Bash", "Herramientas de monitoreo"],
       resultados: ["Aumenté la estabilidad del sistema en 70%", "Reduje tiempos de inactividad en 85%"]
-    },
-    {
-      nombre: "Sistema de Gestión de Inventario",
-      descripcion: "Aplicación web CRUD completa con informes en tiempo real y sistema de alertas",
-      tecnologias: ["PHP", "MySQL", "JavaScript", "Bootstrap"],
-      resultados: ["Reduje errores de inventario en 45%", "Mejoré la precisión del stock en 60%"]
     }
   ];
 
@@ -69,26 +66,56 @@ function App() {
     devops: ["Git", "Docker", "CI/CD", "Apache", "Nginx", "Metodologías Ágiles"]
   };
 
-  const certificaciones = [
-    {
-      nombre: "Especialista en Administración de Bases de Datos Oracle",
-      institucion: "Instituto SISE",
-      año: "2022",
-      codigo: "COD-12345"
-    },
-    {
-      nombre: "Desarrollador Web con Base de Datos",
-      institucion: "Instituto SISE", 
-      año: "2022",
-      codigo: "COD-12346"
-    },
-    {
-      nombre: "Networking Essentials CISCO",
-      institucion: "Instituto SISE",
-      año: "2018",
-      codigo: "COD-12347"
+  // Función para cargar certificaciones desde MongoDB
+  const loadCertifications = async () => {
+    setLoading(true);
+    setDbStatus('🔄 Cargando certificaciones...');
+    
+    try {
+      const response = await fetch('/api/certifications');
+      
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setCertifications(result.data);
+        setDbStatus(`✅ ${result.count} certificaciones cargadas desde MongoDB`);
+      } else {
+        setDbStatus(`❌ Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error cargando certificaciones:', error);
+      setDbStatus(`❌ Error de conexión: ${error.message}`);
+      
+      // Datos de ejemplo si falla la conexión
+      setCertifications([
+        {
+          _id: { $oid: "1" },
+          name: "Especialista en Administración de Bases de Datos Oracle",
+          institution: "Instituto SISE",
+          year: "2022",
+          code: "COD-12345"
+        },
+        {
+          _id: { $oid: "2" },
+          name: "Desarrollador Web con Base de Datos",
+          institution: "Instituto SISE", 
+          year: "2022",
+          code: "COD-12346"
+        }
+      ]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Cargar certificaciones cuando se monta el componente
+  useEffect(() => {
+    loadCertifications();
+  }, []);
 
   return (
     <div className="portfolio">
@@ -141,8 +168,8 @@ function App() {
                   <a href={datosPersonales.linkedin} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
                     LinkedIn
                   </a>
-                  <button className="btn btn-secondary" onClick={() => setActiveSection('proyectos')}>
-                    Ver Proyectos
+                  <button className="btn btn-secondary" onClick={() => setActiveSection('certificaciones')}>
+                    Ver Certificaciones
                   </button>
                 </div>
               </div>
@@ -256,17 +283,58 @@ function App() {
         {activeSection === 'certificaciones' && (
           <section className="section">
             <h2>Certificaciones</h2>
+            
+            {/* Estado de la base de datos */}
+            <div className="db-status" style={{
+              padding: '1rem',
+              marginBottom: '2rem',
+              borderRadius: '10px',
+              background: dbStatus.includes('✅') ? '#d4edda' : 
+                         dbStatus.includes('❌') ? '#f8d7da' : '#fff3cd',
+              color: dbStatus.includes('✅') ? '#155724' : 
+                    dbStatus.includes('❌') ? '#721c24' : '#856404',
+              border: `1px solid ${dbStatus.includes('✅') ? '#c3e6cb' : 
+                              dbStatus.includes('❌') ? '#f5c6cb' : '#ffeaa7'}`,
+              textAlign: 'center',
+              fontWeight: '500'
+            }}>
+              {dbStatus}
+              {loading && (
+                <div style={{ 
+                  display: 'inline-block',
+                  marginLeft: '10px',
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid #f3f3f3',
+                  borderTop: '2px solid #3498db',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+              )}
+            </div>
+
             <div className="certificaciones-grid">
-              {certificaciones.map((cert, index) => (
-                <div key={index} className="certificacion-card">
-                  <h3>{cert.nombre}</h3>
-                  <p className="institucion">{cert.institucion}</p>
+              {certifications.map((cert, index) => (
+                <div key={cert._id?.$oid || index} className="certificacion-card">
+                  <h3>{cert.name}</h3>
+                  <p className="institucion">{cert.institution}</p>
                   <div className="certificacion-footer">
-                    <span className="año">{cert.año}</span>
-                    <span className="codigo">{cert.codigo}</span>
+                    <span className="año">{cert.year}</span>
+                    <span className="codigo">{cert.code}</span>
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Botón para recargar */}
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <button 
+                onClick={loadCertifications}
+                className="btn btn-primary"
+                disabled={loading}
+              >
+                {loading ? '🔄 Cargando...' : '🔄 Actualizar Certificaciones'}
+              </button>
             </div>
           </section>
         )}
@@ -275,8 +343,15 @@ function App() {
       {/* Footer */}
       <footer className="footer">
         <p>&copy; 2024 Armando Pando Huaman. Todos los derechos reservados.</p>
-        <p>Desarrollado con React y Vite</p>
+        <p>Desarrollado con React, Vite y MongoDB</p>
       </footer>
+
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
