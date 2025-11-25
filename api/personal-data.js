@@ -53,39 +53,32 @@ export default async function handler(req, res) {
       });
     }
 
-    if (req.method === 'POST' || req.method === 'PUT') {
-      const personalData = req.body;
-      
-      if (!personalData.nombre || !personalData.email) {
-        return res.status(400).json({
-          success: false,
-          error: "Nombre y email son campos requeridos"
-        });
+   if (req.method === 'POST' || req.method === 'PUT') {
+  const data = req.body;
+  
+  // Eliminar _id para evitar el error de campo inmutable
+  const { _id, ...dataWithoutId } = data;
+  
+  const result = await collection.updateOne(
+    {},
+    { 
+      $set: {
+        ...dataWithoutId,
+        updatedAt: new Date()
       }
+    },
+    { upsert: true }
+  );
 
-      // Eliminar _id si existe, porque no se puede actualizar
-      const { _id, ...dataWithoutId } = personalData;
-
-      const result = await collection.updateOne(
-        {},
-        { 
-          $set: {
-            ...dataWithoutId,
-            updatedAt: new Date()
-          }
-        },
-        { upsert: true }
-      );
-
-      // Obtener el documento actualizado para devolverlo con _id
-      const updatedData = await collection.findOne({});
-
-      return res.status(200).json({
-        success: true,
-        message: 'Datos personales guardados exitosamente',
-        data: updatedData
-      });
-    }
+  // Obtener el documento actualizado
+  const updatedData = await collection.findOne({});
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Datos guardados exitosamente',
+    data: updatedData
+  });
+}
 
     return res.status(405).json({ 
       success: false, 

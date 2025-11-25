@@ -53,33 +53,34 @@ export default async function handler(req, res) {
       });
     }
 
-    if (req.method === 'POST' || req.method === 'PUT') {
-      const skillsData = req.body;
-      
-      // Eliminar _id si existe, porque no se puede actualizar
-      const { _id, ...dataWithoutId } = skillsData;
+    // En ambas APIs, cambia la parte de POST/PUT:
 
-      const result = await collection.updateOne(
-        {},
-        { 
-          $set: {
-            ...dataWithoutId,
-            updatedAt: new Date()
-          }
-        },
-        { upsert: true }
-      );
+if (req.method === 'POST' || req.method === 'PUT') {
+  const data = req.body;
+  
+  // Eliminar _id para evitar el error de campo inmutable
+  const { _id, ...dataWithoutId } = data;
+  
+  const result = await collection.updateOne(
+    {},
+    { 
+      $set: {
+        ...dataWithoutId,
+        updatedAt: new Date()
+      }
+    },
+    { upsert: true }
+  );
 
-      // Obtener el documento actualizado
-      const updatedSkills = await collection.findOne({});
-
-      return res.status(200).json({
-        success: true,
-        message: 'Habilidades guardadas exitosamente',
-        data: updatedSkills
-      });
-    }
-
+  // Obtener el documento actualizado
+  const updatedData = await collection.findOne({});
+    
+  return res.status(200).json({
+    success: true,
+    message: 'Datos guardados exitosamente',
+    data: updatedData
+  });
+}
     return res.status(405).json({ 
       success: false, 
       error: 'Método no permitido' 
