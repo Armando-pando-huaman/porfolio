@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/apiService';
 
-const AdminPanel = ({ onDataUpdated, currentData }) => {
-  const [activeTab, setActiveTab] = useState('personal');
+const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem = null }) => {
+  const [activeTab, setActiveTab] = useState(editMode ? editingItem.section : 'personal');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -24,6 +24,13 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
     code: ''
   });
 
+  // Efecto para cargar datos cuando cambia el modo edición
+  useEffect(() => {
+    if (editMode && editingItem) {
+      setActiveTab(editingItem.section);
+    }
+  }, [editMode, editingItem]);
+
   // Mostrar mensajes temporales
   const showMessage = (msg, isError = false) => {
     setMessage(msg);
@@ -34,11 +41,12 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
   const savePersonalData = async () => {
     setLoading(true);
     try {
-      const result = await apiService.personalData.save(personalData);
+      // Crear copia sin _id para evitar el error
+      const { _id, ...dataToSave } = personalData;
+      const result = await apiService.personalData.save(dataToSave);
       
       if (result.success) {
         showMessage('✅ Datos personales guardados exitosamente');
-        // Actualizar el estado con los datos devueltos (que incluyen _id actualizado)
         setPersonalData(result.data);
         onDataUpdated();
       } else {
@@ -86,9 +94,31 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
     setExperience(updated);
   };
 
-  const removeExperience = (index) => {
-    const updated = experience.filter((_, i) => i !== index);
-    setExperience(updated);
+  const removeExperience = async (index) => {
+    const exp = experience[index];
+    if (exp._id) {
+      if (!confirm('¿Estás seguro de que quieres eliminar esta experiencia?')) return;
+      
+      setLoading(true);
+      try {
+        const result = await apiService.experience.delete(exp._id);
+        if (result.success) {
+          showMessage('✅ Experiencia eliminada exitosamente');
+          const updated = experience.filter((_, i) => i !== index);
+          setExperience(updated);
+          onDataUpdated();
+        } else {
+          showMessage(`❌ Error: ${result.error}`, true);
+        }
+      } catch (error) {
+        showMessage(`❌ Error: ${error.message}`, true);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      const updated = experience.filter((_, i) => i !== index);
+      setExperience(updated);
+    }
   };
 
   const saveExperience = async () => {
@@ -97,8 +127,9 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
       // Guardar cada experiencia
       for (const exp of experience) {
         if (exp._id) {
-          // Si tiene _id, es una actualización
-          await apiService.experience.update(exp._id, exp);
+          // Si tiene _id, es una actualización - crear copia sin _id
+          const { _id, ...dataToUpdate } = exp;
+          await apiService.experience.update(_id, dataToUpdate);
         } else {
           // Si no tiene _id, es una creación
           await apiService.experience.create(exp);
@@ -147,9 +178,31 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
     setProjects(updated);
   };
 
-  const removeProject = (index) => {
-    const updated = projects.filter((_, i) => i !== index);
-    setProjects(updated);
+  const removeProject = async (index) => {
+    const project = projects[index];
+    if (project._id) {
+      if (!confirm('¿Estás seguro de que quieres eliminar este proyecto?')) return;
+      
+      setLoading(true);
+      try {
+        const result = await apiService.projects.delete(project._id);
+        if (result.success) {
+          showMessage('✅ Proyecto eliminado exitosamente');
+          const updated = projects.filter((_, i) => i !== index);
+          setProjects(updated);
+          onDataUpdated();
+        } else {
+          showMessage(`❌ Error: ${result.error}`, true);
+        }
+      } catch (error) {
+        showMessage(`❌ Error: ${error.message}`, true);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      const updated = projects.filter((_, i) => i !== index);
+      setProjects(updated);
+    }
   };
 
   const saveProjects = async () => {
@@ -157,7 +210,9 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
     try {
       for (const project of projects) {
         if (project._id) {
-          await apiService.projects.update(project._id, project);
+          // Actualización - crear copia sin _id
+          const { _id, ...dataToUpdate } = project;
+          await apiService.projects.update(_id, dataToUpdate);
         } else {
           await apiService.projects.create(project);
         }
@@ -182,7 +237,9 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
   const saveSkills = async () => {
     setLoading(true);
     try {
-      const result = await apiService.skills.save(skills);
+      // Crear copia sin _id
+      const { _id, ...dataToSave } = skills;
+      const result = await apiService.skills.save(dataToSave);
       
       if (result.success) {
         showMessage('✅ Habilidades guardadas exitosamente');
@@ -249,6 +306,31 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
     }
   };
 
+  const updateCertification = async (cert) => {
+    if (!cert.name || !cert.institution) {
+      showMessage('❌ Nombre e institución son requeridos', true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Crear copia sin _id para la actualización
+      const { _id, ...dataToUpdate } = cert;
+      const result = await apiService.certifications.update(_id, dataToUpdate);
+      
+      if (result.success) {
+        showMessage('✅ Certificación actualizada exitosamente');
+        onDataUpdated();
+      } else {
+        showMessage(`❌ Error: ${result.error}`, true);
+      }
+    } catch (error) {
+      showMessage(`❌ Error: ${error.message}`, true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="admin-panel">
       {/* Mensajes */}
@@ -257,6 +339,16 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           {message}
         </div>
       )}
+
+      {/* Header del Admin */}
+      <div className="admin-header">
+        <h2>Panel de Administración</h2>
+        {editMode && (
+          <div className="edit-mode-banner">
+            🎯 <strong>Modo Edición:</strong> {editingItem?.section}
+          </div>
+        )}
+      </div>
 
       {/* Navegación de pestañas */}
       <div className="admin-tabs">
@@ -344,15 +436,18 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           <div className="form-section">
             <h3>Experiencia Laboral</h3>
             {experience.map((exp, index) => (
-              <div key={index} className="form-card">
+              <div key={exp._id || index} className="form-card">
                 <div className="form-card-header">
-                  <h4>Experiencia #{index + 1}</h4>
-                  <button 
-                    onClick={() => removeExperience(index)}
-                    className="btn btn-danger btn-sm"
-                  >
-                    🗑️ Eliminar
-                  </button>
+                  <h4>Experiencia #{index + 1} {exp._id && <small>(ID: {exp._id})</small>}</h4>
+                  <div className="form-card-actions">
+                    <button 
+                      onClick={() => removeExperience(index)}
+                      className="btn btn-danger btn-sm"
+                      disabled={loading}
+                    >
+                      🗑️ Eliminar
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="form-grid">
@@ -442,15 +537,18 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           <div className="form-section">
             <h3>Proyectos Destacados</h3>
             {projects.map((project, index) => (
-              <div key={index} className="form-card">
+              <div key={project._id || index} className="form-card">
                 <div className="form-card-header">
-                  <h4>Proyecto #{index + 1}</h4>
-                  <button 
-                    onClick={() => removeProject(index)}
-                    className="btn btn-danger btn-sm"
-                  >
-                    🗑️ Eliminar
-                  </button>
+                  <h4>Proyecto #{index + 1} {project._id && <small>(ID: {project._id})</small>}</h4>
+                  <div className="form-card-actions">
+                    <button 
+                      onClick={() => removeProject(index)}
+                      className="btn btn-danger btn-sm"
+                      disabled={loading}
+                    >
+                      🗑️ Eliminar
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="form-grid">
@@ -645,15 +743,17 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
                     <div className="certification-info">
                       <strong>{cert.name}</strong>
                       <span>{cert.institution} - {cert.year}</span>
-                      <small>{cert.category} | {cert.code}</small>
+                      <small>ID: {cert._id} | {cert.category} | {cert.code}</small>
                     </div>
-                    <button
-                      onClick={() => deleteCertification(cert._id)}
-                      disabled={loading}
-                      className="btn btn-danger btn-sm"
-                    >
-                      🗑️
-                    </button>
+                    <div className="certification-actions">
+                      <button
+                        onClick={() => deleteCertification(cert._id)}
+                        disabled={loading}
+                        className="btn btn-danger btn-sm"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -670,6 +770,23 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           padding: 2rem;
           border-radius: 10px;
           border: 2px solid #007bff;
+        }
+        
+        .admin-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+          padding-bottom: 1rem;
+          border-bottom: 2px solid #dee2e6;
+        }
+        
+        .edit-mode-banner {
+          background: #fff3cd;
+          color: #856404;
+          padding: 0.5rem 1rem;
+          border-radius: 5px;
+          border: 1px solid #ffeaa7;
         }
         
         .message {
@@ -747,6 +864,11 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           border-bottom: 1px solid #dee2e6;
         }
         
+        .form-card-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+        
         .array-item {
           display: flex;
           gap: 0.5rem;
@@ -802,6 +924,11 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
         .certification-info small {
           color: #888;
           font-size: 0.8rem;
+        }
+        
+        .certification-actions {
+          display: flex;
+          gap: 0.5rem;
         }
         
         .btn {
@@ -899,6 +1026,22 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           .tab-button.active {
             border-left-color: #007bff;
             border-bottom-color: #dee2e6;
+          }
+          
+          .admin-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+          }
+          
+          .certification-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+          }
+          
+          .certification-actions {
+            align-self: flex-end;
           }
         }
       `}</style>

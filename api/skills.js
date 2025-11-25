@@ -56,12 +56,14 @@ export default async function handler(req, res) {
     if (req.method === 'POST' || req.method === 'PUT') {
       const skillsData = req.body;
       
-      // Para habilidades, siempre actualizamos el mismo documento
+      // Eliminar _id si existe, porque no se puede actualizar
+      const { _id, ...dataWithoutId } = skillsData;
+
       const result = await collection.updateOne(
-        {}, // Filtro vacío = primer documento
+        {},
         { 
           $set: {
-            ...skillsData,
+            ...dataWithoutId,
             updatedAt: new Date()
           }
         },
