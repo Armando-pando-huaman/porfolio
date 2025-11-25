@@ -77,6 +77,6 @@ export default async function handler(req, res) {
     });
   } finally {
     // No cerramos la conexión porque está cacheada
-    // await client.close();
+    // await client.close(); xd
   }
-}
+} 
