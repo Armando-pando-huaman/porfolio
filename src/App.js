@@ -14,6 +14,7 @@ function App() {
         <h1>Armando Edgardo Pando Huaman</h1>
         <p>Desarrollador Full Stack Junior</p>
       </header>
+      
       <section style={{ padding: '40px 20px' }}>
         <h2 style={{ 
           textAlign: 'center', 
