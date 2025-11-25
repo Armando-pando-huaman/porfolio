@@ -9,8 +9,13 @@ function App() {
       try {
         console.log('🔌 Iniciando prueba de conexión...');
         
-        // Primero probemos una conexión simple
+        // Usar la ruta correcta de la API
         const response = await fetch('/api/test');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (data.success) {
@@ -20,7 +25,7 @@ function App() {
           setConnectionStatus('❌ Error: ' + data.error);
         }
       } catch (error) {
-        setConnectionStatus('❌ Error de conexión: ' + error.message);
+        setConnectionStatus('❌ Error: ' + error.message);
         console.error('Error completo:', error);
       }
     }

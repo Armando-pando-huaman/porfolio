@@ -1,6 +1,15 @@
 import clientPromise from '../src/utils/database.js';
 
 export default async function handler(req, res) {
+  // Configurar CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
     console.log('🔌 Conectando a MongoDB...');
     
@@ -9,7 +18,7 @@ export default async function handler(req, res) {
     
     console.log('✅ Conectado a MongoDB');
     
-    // Verificar conexión y obtener certificaciones
+    // Obtener certificaciones
     const certifications = await db.collection("certifications")
       .find({})
       .sort({ order: 1 })
@@ -17,7 +26,7 @@ export default async function handler(req, res) {
     
     console.log(`📊 Encontradas ${certifications.length} certificaciones`);
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Conexión exitosa a MongoDB',
       certifications: certifications,
@@ -26,7 +35,7 @@ export default async function handler(req, res) {
     
   } catch (error) {
     console.error('❌ Error en API:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error.message,
       certifications: []
