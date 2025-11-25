@@ -63,13 +63,14 @@ export default async function handler(req, res) {
         });
       }
 
-      // Para datos personales, siempre actualizamos el mismo documento
-      // No necesitamos _id porque usamos upsert en un documento único
+      // Eliminar _id si existe, porque no se puede actualizar
+      const { _id, ...dataWithoutId } = personalData;
+
       const result = await collection.updateOne(
-        {}, // Filtro vacío = primer documento
+        {},
         { 
           $set: {
-            ...personalData,
+            ...dataWithoutId,
             updatedAt: new Date()
           }
         },
