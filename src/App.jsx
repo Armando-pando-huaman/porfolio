@@ -1,10 +1,56 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 function App() {
+  const [connectionStatus, setConnectionStatus] = useState('Probando conexión...');
+  const [certifications, setCertifications] = useState([]);
+
+  useEffect(() => {
+    async function testConnection() {
+      try {
+        console.log('🔌 Iniciando prueba de conexión...');
+        
+        // Primero probemos una conexión simple
+        const response = await fetch('/api/test');
+        const data = await response.json();
+        
+        if (data.success) {
+          setConnectionStatus('✅ CONECTADO A MONGODB');
+          setCertifications(data.certifications || []);
+        } else {
+          setConnectionStatus('❌ Error: ' + data.error);
+        }
+      } catch (error) {
+        setConnectionStatus('❌ Error de conexión: ' + error.message);
+        console.error('Error completo:', error);
+      }
+    }
+
+    testConnection();
+  }, []);
+
   return (
-    <div>
+    <div style={{ padding: '20px', fontFamily: 'Arial' }}>
       <h1>Armando Pando - Portfolio</h1>
-      <p>Prueba de conexión exitosa</p>
+      <h2>Estado: {connectionStatus}</h2>
+      
+      {certifications.length > 0 && (
+        <div>
+          <h3>📊 Certificaciones encontradas: {certifications.length}</h3>
+          <div style={{ display: 'grid', gap: '10px', marginTop: '20px' }}>
+            {certifications.map((cert, index) => (
+              <div key={index} style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '5px' }}>
+                <h4>{cert.name}</h4>
+                <p>{cert.institution} - {cert.year}</p>
+                <small>Código: {cert.code}</small>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {connectionStatus.includes('✅') && certifications.length === 0 && (
+        <p>✅ Conexión exitosa pero no hay certificaciones cargadas</p>
+      )}
     </div>
   );
 }
