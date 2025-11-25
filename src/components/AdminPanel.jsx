@@ -47,16 +47,20 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingSecti
     setTimeout(() => setMessage(''), 4000);
   };
 
+ 
   // ========== DATOS PERSONALES ==========
   const savePersonalData = async () => {
     setLoading(true);
     try {
-      // Para datos personales, siempre usamos el mismo documento
-      // No necesitamos _id porque MongoDB lo maneja automáticamente
-      const result = await apiService.personalData.save(personalData);
+      // Crear copia sin _id para evitar problemas con MongoDB
+      const dataToSave = { ...personalData };
+      delete dataToSave._id; // Eliminar _id completamente
+      
+      const result = await apiService.personalData.save(dataToSave);
       
       if (result.success) {
         showMessage('✅ Datos personales guardados exitosamente');
+        // Usar los datos devueltos por el servidor que incluyen el _id correcto
         setPersonalData(result.data);
         onDataUpdated();
       } else {

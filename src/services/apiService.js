@@ -1,18 +1,17 @@
 // Servicio centralizado para todas las peticiones API
 const API_BASE = '/api';
 
-export const apiService = {
-  // ========== DATOS PERSONALES ==========
+const apiService = {
   personalData: {
-    get: async () => {
-      const response = await fetch(`${API_BASE}/personal-data`);
-      return await response.json();
-    },
     save: async (data) => {
-      const response = await fetch(`${API_BASE}/personal-data`, {
+      // Eliminar _id antes de enviar
+      const { _id, ...dataWithoutId } = data;
+      const response = await fetch('/api/personal-data', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataWithoutId),
       });
       return await response.json();
     }

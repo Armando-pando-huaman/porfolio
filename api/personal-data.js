@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 
 const uri = process.env.MONGODB_URI;
 let cachedClient = null;
@@ -34,11 +34,12 @@ export default async function handler(req, res) {
 
   try {
     const client = await connectToDatabase();
-    const db = client.db("porfolio"); // Nota: typo en "portfolio"
+    const db = client.db("porfolio");
     const collection = db.collection("personal_data");
 
     if (req.method === 'GET') {
       const data = await collection.findOne({});
+      
       return res.status(200).json({
         success: true,
         data: data || null
@@ -47,20 +48,41 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST' || req.method === 'PUT') {
       const data = req.body;
-      const { _id, ...dataWithoutId } = data;
       
-      const result = await collection.updateOne(
-        {},
-        { 
-          $set: {
-            ...dataWithoutId,
-            updatedAt: new Date()
+      // Eliminar _id completamente para evitar el error de campo inmutable
+      const { _id, ...updateData } = data;
+      
+      // Buscar si ya existe un documento
+      const existingDoc = await collection.findOne({});
+      
+      if (existingDoc) {
+        // Si existe, actualizar sin incluir _id
+        const result = await collection.updateOne(
+          { _id: existingDoc._id },
+          { 
+            $set: {
+              ...updateData,
+              updatedAt: new Date()
+            }
           }
-        },
-        { upsert: true }
-      );
+        );
 
+        if (result.modifiedCount === 0) {
+          console.log('⚠️ No se realizaron cambios en los datos');
+        }
+      } else {
+        // Si no existe, insertar nuevo documento
+        const result = await collection.insertOne({
+          ...updateData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        console.log('✅ Nuevo documento de datos personales creado');
+      }
+
+      // Obtener el documento actualizado
       const updatedData = await collection.findOne({});
+      
       return res.status(200).json({
         success: true,
         message: 'Datos guardados exitosamente',
@@ -75,6 +97,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('❌ Error en /api/personal-data:', error.message);
+    
     return res.status(500).json({
       success: false,
       error: error.message
