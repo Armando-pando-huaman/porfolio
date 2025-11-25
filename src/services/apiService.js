@@ -2,7 +2,7 @@
 const API_BASE = '/api';
 
 export const apiService = {
-  // Datos Personales
+  // ========== DATOS PERSONALES ==========
   personalData: {
     get: async () => {
       const response = await fetch(`${API_BASE}/personal-data`);
@@ -18,7 +18,7 @@ export const apiService = {
     }
   },
 
-  // Experiencia
+  // ========== EXPERIENCIA ==========
   experience: {
     get: async () => {
       const response = await fetch(`${API_BASE}/experience`);
@@ -50,7 +50,7 @@ export const apiService = {
     }
   },
 
-  // Proyectos
+  // ========== PROYECTOS ==========
   projects: {
     get: async () => {
       const response = await fetch(`${API_BASE}/projects`);
@@ -82,7 +82,7 @@ export const apiService = {
     }
   },
 
-  // Habilidades
+  // ========== HABILIDADES ==========
   skills: {
     get: async () => {
       const response = await fetch(`${API_BASE}/skills`);
@@ -98,7 +98,7 @@ export const apiService = {
     }
   },
 
-  // Certificaciones
+  // ========== CERTIFICACIONES ==========
   certifications: {
     get: async () => {
       const response = await fetch(`${API_BASE}/certifications`);
@@ -128,5 +128,48 @@ export const apiService = {
       });
       return await response.json();
     }
+  },
+
+  // ========== FUNCIONES ESPECIALES ==========
+  seed: {
+    // Función para insertar datos iniciales de ejemplo
+    initialData: async () => {
+      const response = await fetch(`${API_BASE}/seed/initial-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return await response.json();
+    }
+  },
+
+  health: {
+    // Verificar estado del servidor y conexión a MongoDB
+    check: async () => {
+      const response = await fetch(`${API_BASE}/health`);
+      return await response.json();
+    }
   }
 };
+
+// Función de utilidad para manejar errores de fetch
+const handleFetchError = (error) => {
+  console.error('❌ Error de red:', error);
+  return {
+    success: false,
+    error: 'Error de conexión con el servidor',
+    details: error.message
+  };
+};
+
+// Interceptor para manejar errores globalmente
+const originalFetch = window.fetch;
+window.fetch = async (...args) => {
+  try {
+    const response = await originalFetch(...args);
+    return response;
+  } catch (error) {
+    return handleFetchError(error);
+  }
+};
+
+export default apiService;

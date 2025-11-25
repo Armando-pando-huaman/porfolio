@@ -35,8 +35,11 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
     setLoading(true);
     try {
       const result = await apiService.personalData.save(personalData);
+      
       if (result.success) {
         showMessage('✅ Datos personales guardados exitosamente');
+        // Actualizar el estado con los datos devueltos (que incluyen _id actualizado)
+        setPersonalData(result.data);
         onDataUpdated();
       } else {
         showMessage(`❌ Error: ${result.error}`, true);
@@ -94,8 +97,10 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
       // Guardar cada experiencia
       for (const exp of experience) {
         if (exp._id) {
+          // Si tiene _id, es una actualización
           await apiService.experience.update(exp._id, exp);
         } else {
+          // Si no tiene _id, es una creación
           await apiService.experience.create(exp);
         }
       }
@@ -178,8 +183,10 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
     setLoading(true);
     try {
       const result = await apiService.skills.save(skills);
+      
       if (result.success) {
         showMessage('✅ Habilidades guardadas exitosamente');
+        setSkills(result.data);
         onDataUpdated();
       } else {
         showMessage(`❌ Error: ${result.error}`, true);
@@ -201,6 +208,7 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
     setLoading(true);
     try {
       const result = await apiService.certifications.create(newCertification);
+      
       if (result.success) {
         showMessage('✅ Certificación agregada exitosamente');
         setNewCertification({
@@ -227,6 +235,7 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
     setLoading(true);
     try {
       const result = await apiService.certifications.delete(id);
+      
       if (result.success) {
         showMessage('✅ Certificación eliminada exitosamente');
         onDataUpdated();
@@ -278,31 +287,31 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
             <div className="form-grid">
               <input
                 type="text"
-                placeholder="Nombre completo"
+                placeholder="Nombre completo *"
                 value={personalData.nombre || ''}
                 onChange={(e) => setPersonalData({...personalData, nombre: e.target.value})}
               />
               <input
                 type="text"
-                placeholder="Título profesional"
+                placeholder="Título profesional *"
                 value={personalData.titulo || ''}
                 onChange={(e) => setPersonalData({...personalData, titulo: e.target.value})}
               />
               <input
                 type="text"
-                placeholder="Ubicación"
+                placeholder="Ubicación *"
                 value={personalData.ubicacion || ''}
                 onChange={(e) => setPersonalData({...personalData, ubicacion: e.target.value})}
               />
               <input
                 type="text"
-                placeholder="Teléfono"
+                placeholder="Teléfono *"
                 value={personalData.telefono || ''}
                 onChange={(e) => setPersonalData({...personalData, telefono: e.target.value})}
               />
               <input
                 type="email"
-                placeholder="Email"
+                placeholder="Email *"
                 value={personalData.email || ''}
                 onChange={(e) => setPersonalData({...personalData, email: e.target.value})}
               />
@@ -313,7 +322,7 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
                 onChange={(e) => setPersonalData({...personalData, linkedin: e.target.value})}
               />
               <textarea
-                placeholder="Perfil profesional"
+                placeholder="Perfil profesional *"
                 value={personalData.perfil || ''}
                 onChange={(e) => setPersonalData({...personalData, perfil: e.target.value})}
                 rows="4"
@@ -322,7 +331,7 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
             </div>
             <button 
               onClick={savePersonalData} 
-              disabled={loading}
+              disabled={loading || !personalData.nombre || !personalData.email}
               className="btn btn-primary"
             >
               {loading ? '💾 Guardando...' : '💾 Guardar Datos Personales'}
@@ -349,41 +358,43 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
                 <div className="form-grid">
                   <input
                     type="text"
-                    placeholder="Empresa"
-                    value={exp.empresa}
+                    placeholder="Empresa *"
+                    value={exp.empresa || ''}
                     onChange={(e) => updateExperience(index, 'empresa', e.target.value)}
                   />
                   <input
                     type="text"
-                    placeholder="Puesto"
-                    value={exp.puesto}
+                    placeholder="Puesto *"
+                    value={exp.puesto || ''}
                     onChange={(e) => updateExperience(index, 'puesto', e.target.value)}
                   />
                   <input
                     type="text"
-                    placeholder="Periodo (ej: Julio 2023 - Presente)"
-                    value={exp.periodo}
+                    placeholder="Periodo (ej: Julio 2023 - Presente) *"
+                    value={exp.periodo || ''}
                     onChange={(e) => updateExperience(index, 'periodo', e.target.value)}
                     style={{ gridColumn: '1 / -1' }}
                   />
                   
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <label>Logros</label>
-                    {exp.logros.map((logro, logroIndex) => (
+                    <label>Logros *</label>
+                    {exp.logros && exp.logros.map((logro, logroIndex) => (
                       <div key={logroIndex} className="array-item">
                         <input
                           type="text"
                           placeholder={`Logro ${logroIndex + 1}`}
-                          value={logro}
+                          value={logro || ''}
                           onChange={(e) => updateExperienceArray(index, 'logros', logroIndex, e.target.value)}
                         />
-                        <button
-                          type="button"
-                          onClick={() => removeExperienceArrayItem(index, 'logros', logroIndex)}
-                          className="btn btn-danger btn-sm"
-                        >
-                          ✕
-                        </button>
+                        {exp.logros.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeExperienceArrayItem(index, 'logros', logroIndex)}
+                            className="btn btn-danger btn-sm"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
                     ))}
                     <button
@@ -400,7 +411,7 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
                     <input
                       type="text"
                       placeholder="PHP, JavaScript, MySQL, ..."
-                      value={exp.tecnologias.join(', ')}
+                      value={Array.isArray(exp.tecnologias) ? exp.tecnologias.join(', ') : exp.tecnologias || ''}
                       onChange={(e) => updateExperience(index, 'tecnologias', e.target.value.split(',').map(t => t.trim()))}
                     />
                   </div>
@@ -445,14 +456,14 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
                 <div className="form-grid">
                   <input
                     type="text"
-                    placeholder="Nombre del proyecto"
-                    value={project.nombre}
+                    placeholder="Nombre del proyecto *"
+                    value={project.nombre || ''}
                     onChange={(e) => updateProject(index, 'nombre', e.target.value)}
                     style={{ gridColumn: '1 / -1' }}
                   />
                   <textarea
-                    placeholder="Descripción del proyecto"
-                    value={project.descripcion}
+                    placeholder="Descripción del proyecto *"
+                    value={project.descripcion || ''}
                     onChange={(e) => updateProject(index, 'descripcion', e.target.value)}
                     rows="3"
                     style={{ gridColumn: '1 / -1' }}
@@ -463,28 +474,30 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
                     <input
                       type="text"
                       placeholder="PHP, MySQL, JavaScript, ..."
-                      value={project.tecnologias.join(', ')}
+                      value={Array.isArray(project.tecnologias) ? project.tecnologias.join(', ') : project.tecnologias || ''}
                       onChange={(e) => updateProject(index, 'tecnologias', e.target.value.split(',').map(t => t.trim()))}
                     />
                   </div>
 
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label>Resultados alcanzados</label>
-                    {project.resultados.map((resultado, resultadoIndex) => (
+                    {project.resultados && project.resultados.map((resultado, resultadoIndex) => (
                       <div key={resultadoIndex} className="array-item">
                         <input
                           type="text"
                           placeholder={`Resultado ${resultadoIndex + 1}`}
-                          value={resultado}
+                          value={resultado || ''}
                           onChange={(e) => updateProjectArray(index, 'resultados', resultadoIndex, e.target.value)}
                         />
-                        <button
-                          type="button"
-                          onClick={() => removeProjectArrayItem(index, 'resultados', resultadoIndex)}
-                          className="btn btn-danger btn-sm"
-                        >
-                          ✕
-                        </button>
+                        {project.resultados.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeProjectArrayItem(index, 'resultados', resultadoIndex)}
+                            className="btn btn-danger btn-sm"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
                     ))}
                     <button
@@ -626,7 +639,7 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
             {/* Lista de certificaciones existentes */}
             <div className="certifications-list">
               <h4>Certificaciones Existentes</h4>
-              {currentData.certifications?.length > 0 ? (
+              {currentData.certifications && currentData.certifications.length > 0 ? (
                 currentData.certifications.map((cert, index) => (
                   <div key={cert._id || index} className="certification-item">
                     <div className="certification-info">
@@ -692,11 +705,17 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           border-bottom: 3px solid transparent;
           cursor: pointer;
           font-weight: 500;
+          transition: all 0.3s ease;
+        }
+        
+        .tab-button:hover {
+          background: #e9ecef;
         }
         
         .tab-button.active {
           border-bottom-color: #007bff;
           color: #007bff;
+          background: #e7f3ff;
         }
         
         .form-section {
@@ -716,6 +735,7 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           border: 1px solid #dee2e6;
           border-radius: 8px;
           background: white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .form-card-header {
@@ -723,22 +743,33 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           justify-content: space-between;
           align-items: center;
           margin-bottom: 1rem;
+          padding-bottom: 0.5rem;
+          border-bottom: 1px solid #dee2e6;
         }
         
         .array-item {
           display: flex;
           gap: 0.5rem;
           margin-bottom: 0.5rem;
+          align-items: center;
         }
         
         .array-item input {
           flex: 1;
+          padding: 0.5rem;
+          border: 1px solid #ced4da;
+          border-radius: 4px;
         }
         
         .form-actions {
           display: flex;
           gap: 1rem;
           justify-content: space-between;
+          margin-top: 1rem;
+        }
+        
+        .certifications-list {
+          margin-top: 2rem;
         }
         
         .certification-item {
@@ -755,6 +786,22 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
         .certification-info {
           display: flex;
           flex-direction: column;
+          flex: 1;
+        }
+        
+        .certification-info strong {
+          margin-bottom: 0.25rem;
+        }
+        
+        .certification-info span {
+          color: #666;
+          font-size: 0.9rem;
+          margin-bottom: 0.25rem;
+        }
+        
+        .certification-info small {
+          color: #888;
+          font-size: 0.8rem;
         }
         
         .btn {
@@ -763,11 +810,18 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           border-radius: 5px;
           cursor: pointer;
           font-weight: 500;
+          transition: all 0.3s ease;
+        }
+        
+        .btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         
         .btn:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+          transform: none;
         }
         
         .btn-primary {
@@ -775,14 +829,26 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           color: white;
         }
         
+        .btn-primary:hover:not(:disabled) {
+          background: #0056b3;
+        }
+        
         .btn-secondary {
           background: #6c757d;
           color: white;
         }
         
+        .btn-secondary:hover:not(:disabled) {
+          background: #545b62;
+        }
+        
         .btn-danger {
           background: #dc3545;
           color: white;
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+          background: #c82333;
         }
         
         .btn-sm {
@@ -795,12 +861,20 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           border: 1px solid #ced4da;
           border-radius: 5px;
           font-family: inherit;
+          transition: border-color 0.3s ease;
+        }
+        
+        input:focus, textarea:focus {
+          outline: none;
+          border-color: #007bff;
+          box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
         }
         
         label {
           font-weight: 600;
           margin-bottom: 0.5rem;
           display: block;
+          color: #495057;
         }
         
         @media (max-width: 768px) {
@@ -814,6 +888,17 @@ const AdminPanel = ({ onDataUpdated, currentData }) => {
           
           .form-actions {
             flex-direction: column;
+          }
+          
+          .tab-button {
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+            border-left: 3px solid transparent;
+          }
+          
+          .tab-button.active {
+            border-left-color: #007bff;
+            border-bottom-color: #dee2e6;
           }
         }
       `}</style>

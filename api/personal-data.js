@@ -56,8 +56,17 @@ export default async function handler(req, res) {
     if (req.method === 'POST' || req.method === 'PUT') {
       const personalData = req.body;
       
+      if (!personalData.nombre || !personalData.email) {
+        return res.status(400).json({
+          success: false,
+          error: "Nombre y email son campos requeridos"
+        });
+      }
+
+      // Para datos personales, siempre actualizamos el mismo documento
+      // No necesitamos _id porque usamos upsert en un documento único
       const result = await collection.updateOne(
-        {},
+        {}, // Filtro vacío = primer documento
         { 
           $set: {
             ...personalData,
@@ -67,10 +76,13 @@ export default async function handler(req, res) {
         { upsert: true }
       );
 
+      // Obtener el documento actualizado para devolverlo con _id
+      const updatedData = await collection.findOne({});
+
       return res.status(200).json({
         success: true,
         message: 'Datos personales guardados exitosamente',
-        data: personalData
+        data: updatedData
       });
     }
 
