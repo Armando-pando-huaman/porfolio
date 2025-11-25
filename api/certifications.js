@@ -1,6 +1,6 @@
 import { MongoClient } from 'mongodb';
 
-const uri = "mongodb+srv://Armandopando:Nino.1412@cluster0.pmy61xe.mongodb.net/porfolio";
+const uri = "mongodb+srv://Armandopando:Nino.1412@cluster0.pmy6lxe.mongodb.net/porfolio";
 
 export default async function handler(req, res) {
   // Configurar CORS
