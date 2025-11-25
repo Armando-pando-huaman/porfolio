@@ -2,10 +2,10 @@
   "name": "porfolio",
   "version": "1.0.0",
   "type": "module",
-   "dependencies": {
+  "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "mongodb": "^8.0.16"
+    "mongodb": "^5.9.2"
   },
   "scripts": {
     "dev": "vite",
