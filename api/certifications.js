@@ -1,71 +1,174 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+import { MongoClient } from 'mongodb';
 
-const uri = "mongodb+srv://Armandopando:Nino.1412@cluster0.pmy6lxe.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = "mongodb+srv://Armandopando:Nino.1412@cluster0.pmy6lxe.mongodb.net/porfolio?retryWrites=true&w=majority&appName=Cluster0";
 
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
+let cachedClient = null;
+
+async function connectToDatabase() {
+  if (cachedClient) {
+    return cachedClient;
   }
-});
 
-async function run() {
-  try {
-    console.log('🔌 Intentando conectar a MongoDB Atlas...');
-    
-    await client.connect();
-    console.log('✅ Conexión establecida exitosamente!');
-    
-    // Ping para confirmar conexión
-    await client.db("admin").command({ ping: 1 });
-    console.log("✅ Ping exitoso a MongoDB!");
-    
-    // Listar todas las bases de datos disponibles
-    const adminDb = client.db().admin();
-    const dbs = await adminDb.listDatabases();
-    console.log('\n📂 Bases de datos disponibles:');
-    dbs.databases.forEach(db => {
-      console.log(`   - ${db.name} (${(db.sizeOnDisk / 1024 / 1024).toFixed(2)} MB)`);
-    });
-    
-    // Verificar la base de datos "porfolio"
-    const porfolioDB = client.db("porfolio");
-    const collections = await porfolioDB.listCollections().toArray();
-    console.log('\n📁 Colecciones en la base "porfolio":');
-    if (collections.length > 0) {
-      collections.forEach(col => console.log(`   - ${col.name}`));
-    } else {
-      console.log('   (No hay colecciones aún)');
-    }
-    
-    console.log('\n✅ DIAGNÓSTICO COMPLETO: Todo funciona correctamente');
-    
-  } catch (error) {
-    console.error('\n❌ ERROR DETECTADO:');
-    console.error('   Tipo:', error.name);
-    console.error('   Mensaje:', error.message);
-    console.error('   Código:', error.code);
-    
-    if (error.message.includes('authentication failed')) {
-      console.error('\n🔐 PROBLEMA DE AUTENTICACIÓN:');
-      console.error('   1. Verifica que la contraseña sea exactamente: Nino.1412');
-      console.error('   2. Resetea la contraseña en MongoDB Atlas');
-      console.error('   3. Verifica que no haya espacios extras');
-    } else if (error.message.includes('ENOTFOUND')) {
-      console.error('\n🌐 PROBLEMA DE RED:');
-      console.error('   1. Verifica tu conexión a internet');
-      console.error('   2. Revisa el firewall');
-    } else if (error.message.includes('IP')) {
-      console.error('\n🔒 PROBLEMA DE ACCESO:');
-      console.error('   1. Agrega tu IP en Network Access de MongoDB Atlas');
-      console.error('   2. O usa 0.0.0.0/0 para permitir todas las IPs (solo desarrollo)');
-    }
-    
-  } finally {
-    await client.close();
-    console.log('\n🔌 Conexión cerrada');
-  }
+  const client = new MongoClient(uri, {
+    serverSelectionTimeoutMS: 8000,
+    connectTimeoutMS: 10000,
+  });
+
+  await client.connect();
+  cachedClient = client;
+  return client;
 }
 
-run().catch(console.dir);
+export default async function handler(req, res) {
+  console.log('🚀 API /certifications iniciada');
+  
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Método no permitido' });
+  }
+
+  try {
+    console.log('🔌 Conectando a MongoDB...');
+    
+    const client = await connectToDatabase();
+    console.log('✅ Conexión establecida');
+
+    const db = client.db("porfolio");
+    
+    const collections = await db.listCollections().toArray();
+    const collectionNames = collections.map(col => col.name);
+    console.log('📂 Colecciones:', collectionNames);
+
+    let certifications = [];
+    
+    if (collectionNames.includes('certifications')) {
+      certifications = await db.collection("certifications")
+        .find({})
+        .sort({ order: 1 })
+        .toArray();
+      console.log(`📊 ${certifications.length} certificaciones encontradas`);
+    } else {
+      console.log('ℹ️  Colección "certifications" no existe aún');
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Conexión exitosa a MongoDB',
+      data: certifications,
+      count: certifications.length,
+      collections: collectionNames
+    });
+
+  } catch (error) {
+    console.error('❌ Error:', error.message);
+    
+    const fallbackData = [
+      {
+        _id: "1",
+        name: "Especialista en Administración de Bases de Datos Oracle",
+        institution: "Instituto SISE",
+        year: "2022",
+        category: "Bases de Datos",
+        code: "COD-12345",
+        order: 1
+      },
+      {
+        _id: "2",
+        name: "Gestor de Business Intelligence para Empresas",
+        institution: "Instituto SISE",
+        year: "2022",
+        category: "Business Intelligence", 
+        code: "COD-12346",
+        order: 2
+      },
+      {
+        _id: "3",
+        name: "Desarrollador Web con Base de Datos",
+        institution: "Instituto SISE",
+        year: "2022",
+        category: "Desarrollo Web",
+        code: "COD-12347",
+        order: 3
+      },
+      {
+        _id: "4",
+        name: "Networking Essentials CISCO",
+        institution: "Instituto SISE",
+        year: "2018",
+        category: "Redes",
+        code: "COD-12348",
+        order: 4
+      },
+      {
+        _id: "5", 
+        name: "Comercio Electrónico",
+        institution: "Google Activate",
+        year: "2020",
+        category: "E-commerce",
+        code: "GOOGLE-001",
+        order: 5
+      },
+      {
+        _id: "6",
+        name: "Desarrollo de Apps Móviles",
+        institution: "Google Activate", 
+        year: "2020",
+        category: "Desarrollo Móvil",
+        code: "GOOGLE-002",
+        order: 6
+      },
+      {
+        _id: "7",
+        name: "Fundamentos de Marketing Digital",
+        institution: "Google Activate",
+        year: "2020",
+        category: "Marketing Digital",
+        code: "GOOGLE-003",
+        order: 7
+      },
+      {
+        _id: "8",
+        name: "Cloud Computing",
+        institution: "Google Activate",
+        year: "2020",
+        category: "Cloud",
+        code: "GOOGLE-004",
+        order: 8
+      },
+      {
+        _id: "9",
+        name: "Python para Data Science",
+        institution: "Coursera",
+        year: "2021",
+        category: "Data Science",
+        code: "COURSE-001",
+        order: 9
+      },
+      {
+        _id: "10",
+        name: "Git y GitHub Profesional",
+        institution: "Platzi",
+        year: "2021",
+        category: "Control de Versiones",
+        code: "PLATZI-001",
+        order: 10
+      }
+    ];
+    
+    return res.status(200).json({
+      success: false,
+      error: error.message,
+      data: fallbackData,
+      count: fallbackData.length,
+      fallback: true,
+      note: "Usando datos de respaldo debido a error de conexión"
+    });
+  }
+}
