@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/apiService';
 
-const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem = null }) => {
-  const [activeTab, setActiveTab] = useState(editMode ? editingItem.section : 'personal');
+const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingSection = '', onExitEditMode }) => {
+  const [activeTab, setActiveTab] = useState(editMode ? editingSection : 'personal');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Estados para formularios
+  // Estados para formularios - INICIALIZAR CON DATOS EXISTENTES
   const [personalData, setPersonalData] = useState(currentData.personalData || {});
   const [experience, setExperience] = useState(currentData.experience || []);
   const [projects, setProjects] = useState(currentData.projects || []);
@@ -24,12 +24,22 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
     code: ''
   });
 
-  // Efecto para cargar datos cuando cambia el modo edición
+  // Efecto para cargar datos cuando cambian las props
   useEffect(() => {
-    if (editMode && editingItem) {
-      setActiveTab(editingItem.section);
+    setPersonalData(currentData.personalData || {});
+    setExperience(currentData.experience || []);
+    setProjects(currentData.projects || []);
+    setSkills(currentData.skills || {
+      frontend: [], backend: [], basesDatos: [], devops: []
+    });
+  }, [currentData]);
+
+  // Efecto para cambiar pestaña cuando está en modo edición
+  useEffect(() => {
+    if (editMode && editingSection) {
+      setActiveTab(editingSection);
     }
-  }, [editMode, editingItem]);
+  }, [editMode, editingSection]);
 
   // Mostrar mensajes temporales
   const showMessage = (msg, isError = false) => {
@@ -41,9 +51,9 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
   const savePersonalData = async () => {
     setLoading(true);
     try {
-      // Crear copia sin _id para evitar el error
-      const { _id, ...dataToSave } = personalData;
-      const result = await apiService.personalData.save(dataToSave);
+      // Para datos personales, siempre usamos el mismo documento
+      // No necesitamos _id porque MongoDB lo maneja automáticamente
+      const result = await apiService.personalData.save(personalData);
       
       if (result.success) {
         showMessage('✅ Datos personales guardados exitosamente');
@@ -127,7 +137,7 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
       // Guardar cada experiencia
       for (const exp of experience) {
         if (exp._id) {
-          // Si tiene _id, es una actualización - crear copia sin _id
+          // Si tiene _id, es una actualización - usar el ID para actualizar
           const { _id, ...dataToUpdate } = exp;
           await apiService.experience.update(_id, dataToUpdate);
         } else {
@@ -210,7 +220,7 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
     try {
       for (const project of projects) {
         if (project._id) {
-          // Actualización - crear copia sin _id
+          // Actualización - usar ID para actualizar
           const { _id, ...dataToUpdate } = project;
           await apiService.projects.update(_id, dataToUpdate);
         } else {
@@ -237,9 +247,8 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
   const saveSkills = async () => {
     setLoading(true);
     try {
-      // Crear copia sin _id
-      const { _id, ...dataToSave } = skills;
-      const result = await apiService.skills.save(dataToSave);
+      // Para habilidades, siempre usamos el mismo documento
+      const result = await apiService.skills.save(skills);
       
       if (result.success) {
         showMessage('✅ Habilidades guardadas exitosamente');
@@ -306,31 +315,6 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
     }
   };
 
-  const updateCertification = async (cert) => {
-    if (!cert.name || !cert.institution) {
-      showMessage('❌ Nombre e institución son requeridos', true);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Crear copia sin _id para la actualización
-      const { _id, ...dataToUpdate } = cert;
-      const result = await apiService.certifications.update(_id, dataToUpdate);
-      
-      if (result.success) {
-        showMessage('✅ Certificación actualizada exitosamente');
-        onDataUpdated();
-      } else {
-        showMessage(`❌ Error: ${result.error}`, true);
-      }
-    } catch (error) {
-      showMessage(`❌ Error: ${error.message}`, true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="admin-panel">
       {/* Mensajes */}
@@ -344,8 +328,16 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
       <div className="admin-header">
         <h2>Panel de Administración</h2>
         {editMode && (
-          <div className="edit-mode-banner">
-            🎯 <strong>Modo Edición:</strong> {editingItem?.section}
+          <div className="edit-mode-info">
+            <span className="edit-mode-banner">
+              🎯 <strong>Modo Edición:</strong> {editingSection}
+            </span>
+            <button 
+              onClick={onExitEditMode}
+              className="btn btn-secondary"
+            >
+              ↩️ Volver a Visualización
+            </button>
           </div>
         )}
       </div>
@@ -376,6 +368,11 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
         {activeTab === 'personal' && (
           <div className="form-section">
             <h3>Datos Personales</h3>
+            {personalData && personalData._id && (
+              <div className="data-id-info">
+                <small>ID del documento: {personalData._id}</small>
+              </div>
+            )}
             <div className="form-grid">
               <input
                 type="text"
@@ -438,8 +435,11 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
             {experience.map((exp, index) => (
               <div key={exp._id || index} className="form-card">
                 <div className="form-card-header">
-                  <h4>Experiencia #{index + 1} {exp._id && <small>(ID: {exp._id})</small>}</h4>
+                  <h4>Experiencia #{index + 1}</h4>
                   <div className="form-card-actions">
+                    {exp._id && (
+                      <span className="item-id">ID: {exp._id}</span>
+                    )}
                     <button 
                       onClick={() => removeExperience(index)}
                       className="btn btn-danger btn-sm"
@@ -539,8 +539,11 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
             {projects.map((project, index) => (
               <div key={project._id || index} className="form-card">
                 <div className="form-card-header">
-                  <h4>Proyecto #{index + 1} {project._id && <small>(ID: {project._id})</small>}</h4>
+                  <h4>Proyecto #{index + 1}</h4>
                   <div className="form-card-actions">
+                    {project._id && (
+                      <span className="item-id">ID: {project._id}</span>
+                    )}
                     <button 
                       onClick={() => removeProject(index)}
                       className="btn btn-danger btn-sm"
@@ -632,6 +635,11 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
         {activeTab === 'skills' && (
           <div className="form-section">
             <h3>Habilidades Técnicas</h3>
+            {skills && skills._id && (
+              <div className="data-id-info">
+                <small>ID del documento: {skills._id}</small>
+              </div>
+            )}
             <div className="form-grid">
               <div style={{ gridColumn: '1 / -1' }}>
                 <label>🖥️ Frontend (separadas por coma)</label>
@@ -779,6 +787,15 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
           margin-bottom: 1.5rem;
           padding-bottom: 1rem;
           border-bottom: 2px solid #dee2e6;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+        
+        .edit-mode-info {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex-wrap: wrap;
         }
         
         .edit-mode-banner {
@@ -787,6 +804,23 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
           padding: 0.5rem 1rem;
           border-radius: 5px;
           border: 1px solid #ffeaa7;
+          font-weight: 600;
+        }
+        
+        .data-id-info {
+          background: #e7f3ff;
+          padding: 0.5rem;
+          border-radius: 5px;
+          margin-bottom: 1rem;
+          border-left: 4px solid #007bff;
+        }
+        
+        .item-id {
+          background: #e9ecef;
+          padding: 0.25rem 0.5rem;
+          border-radius: 3px;
+          font-size: 0.8rem;
+          color: #6c757d;
         }
         
         .message {
@@ -862,11 +896,14 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
           margin-bottom: 1rem;
           padding-bottom: 0.5rem;
           border-bottom: 1px solid #dee2e6;
+          flex-wrap: wrap;
+          gap: 1rem;
         }
         
         .form-card-actions {
           display: flex;
           gap: 0.5rem;
+          align-items: center;
         }
         
         .array-item {
@@ -978,6 +1015,15 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
           background: #c82333;
         }
         
+        .btn-warning {
+          background: #ffc107;
+          color: #212529;
+        }
+        
+        .btn-warning:hover:not(:disabled) {
+          background: #e0a800;
+        }
+        
         .btn-sm {
           padding: 0.25rem 0.5rem;
           font-size: 0.875rem;
@@ -1034,6 +1080,11 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
             align-items: flex-start;
           }
           
+          .edit-mode-info {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          
           .certification-item {
             flex-direction: column;
             align-items: flex-start;
@@ -1041,6 +1092,15 @@ const AdminPanel = ({ onDataUpdated, currentData, editMode = false, editingItem 
           }
           
           .certification-actions {
+            align-self: flex-end;
+          }
+          
+          .form-card-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          
+          .form-card-actions {
             align-self: flex-end;
           }
         }

@@ -7,12 +7,16 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [dbStatus, setDbStatus] = useState('');
   
-  // Estados para datos dinámicos - TODOS VACÍOS INICIALMENTE
+  // Estados para datos dinámicos
   const [personalData, setPersonalData] = useState(null);
   const [experience, setExperience] = useState([]);
   const [projects, setProjects] = useState([]);
   const [skills, setSkills] = useState(null);
   const [certifications, setCertifications] = useState([]);
+
+  // Estado para modo edición
+  const [editMode, setEditMode] = useState(false);
+  const [editingSection, setEditingSection] = useState('');
 
   // Función para cargar todos los datos desde MongoDB
   const loadAllData = async () => {
@@ -54,6 +58,19 @@ function App() {
     }
   };
 
+  // Función para activar modo edición
+  const enableEditMode = (section) => {
+    setEditMode(true);
+    setEditingSection(section);
+    setActiveSection('admin');
+  };
+
+  // Función para desactivar modo edición
+  const disableEditMode = () => {
+    setEditMode(false);
+    setEditingSection('');
+  };
+
   useEffect(() => {
     loadAllData();
   }, []);
@@ -71,7 +88,7 @@ function App() {
       <p>Ve al panel de administración para agregar tu información</p>
       <button 
         className="btn btn-primary"
-        onClick={() => setActiveSection('admin')}
+        onClick={() => enableEditMode(section)}
       >
         ⚙️ Ir al Panel de Administración
       </button>
@@ -92,7 +109,10 @@ function App() {
               <button
                 key={section}
                 className={`nav-link ${activeSection === section ? 'active' : ''}`}
-                onClick={() => setActiveSection(section)}
+                onClick={() => {
+                  setActiveSection(section);
+                  if (section !== 'admin') disableEditMode();
+                }}
               >
                 {section.charAt(0).toUpperCase() + section.slice(1)}
               </button>
@@ -165,6 +185,12 @@ function App() {
                     <button className="btn btn-secondary" onClick={() => setActiveSection('certificaciones')}>
                       📜 Ver Certificaciones
                     </button>
+                    <button 
+                      className="btn btn-warning"
+                      onClick={() => enableEditMode('personal')}
+                    >
+                      ✏️ Modificar Perfil
+                    </button>
                   </div>
                 </div>
                 <div className="hero-image">
@@ -182,7 +208,15 @@ function App() {
         {/* Sección Experiencia */}
         {activeSection === 'experiencia' && (
           <section className="section">
-            <h2>Experiencia Laboral</h2>
+            <div className="section-header">
+              <h2>Experiencia Laboral</h2>
+              <button 
+                className="btn btn-warning"
+                onClick={() => enableEditMode('experience')}
+              >
+                ✏️ Modificar Experiencia
+              </button>
+            </div>
             {experience.length > 0 ? (
               <div className="experiencia-grid">
                 {experience.map((exp, index) => (
@@ -214,7 +248,15 @@ function App() {
         {/* Sección Proyectos */}
         {activeSection === 'proyectos' && (
           <section className="section">
-            <h2>Proyectos Destacados</h2>
+            <div className="section-header">
+              <h2>Proyectos Destacados</h2>
+              <button 
+                className="btn btn-warning"
+                onClick={() => enableEditMode('projects')}
+              >
+                ✏️ Modificar Proyectos
+              </button>
+            </div>
             {projects.length > 0 ? (
               <div className="proyectos-grid">
                 {projects.map((proyecto, index) => (
@@ -246,7 +288,15 @@ function App() {
         {/* Sección Habilidades */}
         {activeSection === 'habilidades' && (
           <section className="section">
-            <h2>Habilidades Técnicas</h2>
+            <div className="section-header">
+              <h2>Habilidades Técnicas</h2>
+              <button 
+                className="btn btn-warning"
+                onClick={() => enableEditMode('skills')}
+              >
+                ✏️ Modificar Habilidades
+              </button>
+            </div>
             {skills ? (
               <div className="habilidades-grid">
                 <div className="habilidad-categoria">
@@ -291,7 +341,15 @@ function App() {
         {/* Sección Certificaciones */}
         {activeSection === 'certificaciones' && (
           <section className="section">
-            <h2>Mis Certificaciones</h2>
+            <div className="section-header">
+              <h2>Mis Certificaciones</h2>
+              <button 
+                className="btn btn-warning"
+                onClick={() => enableEditMode('certifications')}
+              >
+                ✏️ Modificar Certificaciones
+              </button>
+            </div>
             {certifications.length > 0 ? (
               <>
                 <div className="certificaciones-grid">
@@ -329,10 +387,12 @@ function App() {
         {/* Sección Admin */}
         {activeSection === 'admin' && (
           <section className="section">
-            <h2>Panel de Administración</h2>
             <AdminPanel 
               onDataUpdated={loadAllData}
               currentData={{ personalData, experience, projects, skills, certifications }}
+              editMode={editMode}
+              editingSection={editingSection}
+              onExitEditMode={disableEditMode}
             />
           </section>
         )}
@@ -351,6 +411,15 @@ function App() {
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2rem;
+          flex-wrap: wrap;
+          gap: 1rem;
         }
         
         .certificacion-meta {
@@ -375,6 +444,22 @@ function App() {
           flex-wrap: wrap;
         }
         
+        .btn-warning {
+          background: #ffc107;
+          color: #212529;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 5px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: all 0.3s ease;
+        }
+        
+        .btn-warning:hover {
+          background: #e0a800;
+          transform: translateY(-1px);
+        }
+        
         @media (max-width: 768px) {
           .hero-buttons {
             flex-direction: column;
@@ -384,6 +469,11 @@ function App() {
           .hero-buttons .btn {
             width: 100%;
             max-width: 280px;
+          }
+          
+          .section-header {
+            flex-direction: column;
+            align-items: flex-start;
           }
         }
       `}</style>
