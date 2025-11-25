@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 
 const uri = process.env.MONGODB_URI || "mongodb+srv://Armandopando:Mongo123@cluster0.pmy6lxe.mongodb.net/porfolio?retryWrites=true&w=majority&appName=Cluster0";
 let cachedClient = null;
@@ -19,155 +19,149 @@ async function connectToDatabase() {
 }
 
 export default async function handler(req, res) {
-  console.log('🚀 API /certifications iniciada');
+  console.log('🚀 API /certifications - Método:', req.method);
   
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Método no permitido' });
-  }
-
   try {
-    console.log('🔌 Conectando a MongoDB...');
-    
     const client = await connectToDatabase();
-    console.log('✅ Conexión establecida');
-
     const db = client.db("porfolio");
-    
-    const collections = await db.listCollections().toArray();
-    const collectionNames = collections.map(col => col.name);
-    console.log('📂 Colecciones:', collectionNames);
+    const collection = db.collection("certifications");
 
-    let certifications = [];
-    
-    if (collectionNames.includes('certifications')) {
-      certifications = await db.collection("certifications")
-        .find({})
-        .sort({ order: 1 })
-        .toArray();
-      console.log(`📊 ${certifications.length} certificaciones encontradas`);
-    } else {
-      console.log('ℹ️  Colección "certifications" no existe aún');
+    // CREATE - Insertar nueva certificación
+    if (req.method === 'POST') {
+      const { name, institution, year, category, code } = req.body;
+      
+      if (!name || !institution) {
+        return res.status(400).json({
+          success: false,
+          error: "Nombre e institución son campos requeridos"
+        });
+      }
+
+      const result = await collection.insertOne({
+        name,
+        institution,
+        year: year || new Date().getFullYear().toString(),
+        category: category || "General",
+        code: code || `CERT-${Date.now()}`,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      console.log('✅ Certificación creada:', result.insertedId);
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Certificación creada exitosamente',
+        data: { 
+          _id: result.insertedId, 
+          name, 
+          institution, 
+          year, 
+          category, 
+          code 
+        }
+      });
     }
 
-    return res.status(200).json({
-      success: true,
-      message: 'Conexión exitosa a MongoDB',
-      data: certifications,
-      count: certifications.length,
-      collections: collectionNames
-    });
+    // READ - Obtener todas las certificaciones
+    if (req.method === 'GET') {
+      let certifications = [];
+      const collections = await db.listCollections().toArray();
+      const collectionNames = collections.map(col => col.name);
+
+      if (collectionNames.includes('certifications')) {
+        certifications = await collection
+          .find({})
+          .sort({ createdAt: -1 })
+          .toArray();
+        console.log(`📊 ${certifications.length} certificaciones encontradas`);
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Conexión exitosa a MongoDB',
+        data: certifications,
+        count: certifications.length,
+        collections: collectionNames
+      });
+    }
+
+    // UPDATE - Actualizar certificación
+    if (req.method === 'PUT') {
+      const { _id, ...updateData } = req.body;
+      
+      if (!_id) {
+        return res.status(400).json({
+          success: false,
+          error: "ID de certificación es requerido"
+        });
+      }
+
+      const result = await collection.updateOne(
+        { _id: new ObjectId(_id) },
+        { 
+          $set: {
+            ...updateData,
+            updatedAt: new Date()
+          }
+        }
+      );
+
+      if (result.matchedCount === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Certificación no encontrada"
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Certificación actualizada exitosamente'
+      });
+    }
+
+    // DELETE - Eliminar certificación
+    if (req.method === 'DELETE') {
+      const { _id } = req.body;
+      
+      if (!_id) {
+        return res.status(400).json({
+          success: false,
+          error: "ID de certificación es requerido"
+        });
+      }
+
+      const result = await collection.deleteOne({ _id: new ObjectId(_id) });
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Certificación no encontrada"
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Certificación eliminada exitosamente'
+      });
+    }
+
+    return res.status(405).json({ error: 'Método no permitido' });
 
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error('❌ Error en la API:', error.message);
     
-    const fallbackData = [
-      {
-        _id: "1",
-        name: "Especialista en Administración de Bases de Datos Oracle",
-        institution: "Instituto SISE",
-        year: "2022",
-        category: "Bases de Datos",
-        code: "COD-12345",
-        order: 1
-      },
-      {
-        _id: "2",
-        name: "Gestor de Business Intelligence para Empresas",
-        institution: "Instituto SISE",
-        year: "2022",
-        category: "Business Intelligence", 
-        code: "COD-12346",
-        order: 2
-      },
-      {
-        _id: "3",
-        name: "Desarrollador Web con Base de Datos",
-        institution: "Instituto SISE",
-        year: "2022",
-        category: "Desarrollo Web",
-        code: "COD-12347",
-        order: 3
-      },
-      {
-        _id: "4",
-        name: "Networking Essentials CISCO",
-        institution: "Instituto SISE",
-        year: "2018",
-        category: "Redes",
-        code: "COD-12348",
-        order: 4
-      },
-      {
-        _id: "5", 
-        name: "Comercio Electrónico",
-        institution: "Google Activate",
-        year: "2020",
-        category: "E-commerce",
-        code: "GOOGLE-001",
-        order: 5
-      },
-      {
-        _id: "6",
-        name: "Desarrollo de Apps Móviles",
-        institution: "Google Activate", 
-        year: "2020",
-        category: "Desarrollo Móvil",
-        code: "GOOGLE-002",
-        order: 6
-      },
-      {
-        _id: "7",
-        name: "Fundamentos de Marketing Digital",
-        institution: "Google Activate",
-        year: "2020",
-        category: "Marketing Digital",
-        code: "GOOGLE-003",
-        order: 7
-      },
-      {
-        _id: "8",
-        name: "Cloud Computing",
-        institution: "Google Activate",
-        year: "2020",
-        category: "Cloud",
-        code: "GOOGLE-004",
-        order: 8
-      },
-      {
-        _id: "9",
-        name: "Python para Data Science",
-        institution: "Coursera",
-        year: "2021",
-        category: "Data Science",
-        code: "COURSE-001",
-        order: 9
-      },
-      {
-        _id: "10",
-        name: "Git y GitHub Profesional",
-        institution: "Platzi",
-        year: "2021",
-        category: "Control de Versiones",
-        code: "PLATZI-001",
-        order: 10
-      }
-    ];
-    
-    return res.status(200).json({
+    return res.status(500).json({
       success: false,
-      error: error.message,
-      data: fallbackData,
-      count: fallbackData.length,
-      fallback: true,
-      note: "Usando datos de respaldo debido a error de conexión"
+      error: error.message
     });
   }
 }
