@@ -1,9 +1,11 @@
-import { MongoClient } from 'mongodb';
+const { MongoClient } = require('mongodb');
 
-const uri = "mongodb+srv://Armandopando:Nino.1412@cluster0.pmy6lxe.mongodb.net/porfolio";
+// USA EL CLUSTER QUE SÍ FUNCIONA (el de tu sistema de cobranza)
+const uri = "mongodb+srv://Armandopando:Nino.1412@cluster0.pmy6lxe.mongodb.net/porfolio?retryWrites=true&w=majority&appName=Cluster0";
 
-export default async function handler(req, res) {
-  // Configurar CORS
+module.exports = async (req, res) => {
+  console.log('🔌 Iniciando API /certifications con cluster funcional');
+  
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -12,20 +14,22 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Método no permitido' });
-  }
-
   let client;
 
   try {
-    console.log('🔌 Conectando a MongoDB...');
+    console.log('🔌 Conectando al cluster funcional...');
     
-    client = new MongoClient(uri);
+    client = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 15000,
+    });
+
     await client.connect();
-    console.log('✅ Conectado a MongoDB');
+    console.log('✅ Conectado exitosamente al cluster funcional');
 
     const db = client.db("porfolio");
+    
+    // El resto del código igual...
     const certifications = await db.collection("certifications")
       .find({})
       .sort({ order: 1 })
@@ -35,13 +39,13 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: 'Conexión exitosa',
+      message: 'Conexión exitosa a MongoDB',
       data: certifications,
       count: certifications.length
     });
 
   } catch (error) {
-    console.error('❌ Error en API:', error);
+    console.error('❌ Error:', error);
     return res.status(500).json({
       success: false,
       error: error.message,
@@ -52,4 +56,4 @@ export default async function handler(req, res) {
       await client.close();
     }
   }
-}
+};
