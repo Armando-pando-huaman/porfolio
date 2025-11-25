@@ -1,6 +1,8 @@
-import clientPromise from '../src/utils/database.js';
+const { MongoClient } = require('mongodb');
 
-export default async function handler(req, res) {
+const uri = "mongodb+srv://Armandopando:Nino.1412@cluster0.pmy61xe.mongodb.net/porfolio";
+
+module.exports = async (req, res) => {
   // Configurar CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -10,15 +12,17 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  let client;
+  
   try {
     console.log('🔌 Conectando a MongoDB...');
     
-    const client = await clientPromise;
-    const db = client.db("porfolio");
+    client = new MongoClient(uri);
+    await client.connect();
     
     console.log('✅ Conectado a MongoDB');
     
-    // Obtener certificaciones
+    const db = client.db("porfolio");
     const certifications = await db.collection("certifications")
       .find({})
       .sort({ order: 1 })
@@ -34,11 +38,15 @@ export default async function handler(req, res) {
     });
     
   } catch (error) {
-    console.error('❌ Error en API:', error);
+    console.error('❌ Error:', error);
     return res.status(500).json({
       success: false,
       error: error.message,
       certifications: []
     });
+  } finally {
+    if (client) {
+      await client.close();
+    }
   }
-}
+};
