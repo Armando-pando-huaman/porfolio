@@ -1,5 +1,7 @@
-const { MongoClient } = require('mongodb');
+import { MongoClient } from 'mongodb';
+
 const uri = "mongodb+srv://Armandopando:Nino.1412@cluster0.pmy6lxe.mongodb.net/porfolio?retryWrites=true&w=majority&appName=Cluster0";
+
 let cachedClient = null;
 
 async function connectToDatabase() {
@@ -17,7 +19,7 @@ async function connectToDatabase() {
   return client;
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   console.log('🚀 API /certifications iniciada');
   
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -169,4 +171,4 @@ module.exports = async function handler(req, res) {
       note: "Usando datos de respaldo debido a error de conexión"
     });
   }
-};
+}
