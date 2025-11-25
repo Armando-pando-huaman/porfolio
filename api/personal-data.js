@@ -6,11 +6,6 @@ let cachedClient = null;
 async function connectToDatabase() {
   if (cachedClient) return cachedClient;
   
-  // Verificar que la URI existe
-  if (!uri) {
-    throw new Error('❌ MONGODB_URI no está definida en las variables de entorno');
-  }
-  
   const client = new MongoClient(uri, {
     serverSelectionTimeoutMS: 5000,
     connectTimeoutMS: 10000,
@@ -54,28 +49,40 @@ export default async function handler(req, res) {
     if (req.method === 'POST' || req.method === 'PUT') {
       const data = req.body;
       
-      // Crear copia sin _id
+      // Eliminar _id completamente para evitar el error de campo inmutable
       const { _id, ...updateData } = data;
       
-      // Usar findOneAndUpdate con upsert
-      const result = await collection.findOneAndUpdate(
-        {}, // Buscar cualquier documento
-        { 
-          $set: {
-            ...updateData,
-            updatedAt: new Date()
+      // Buscar si ya existe un documento
+      const existingDoc = await collection.findOne({});
+      
+      let result;
+      if (existingDoc) {
+        // Si existe, actualizar sin incluir _id
+        result = await collection.updateOne(
+          { _id: existingDoc._id },
+          { 
+            $set: {
+              ...updateData,
+              updatedAt: new Date()
+            }
           }
-        },
-        { 
-          upsert: true,
-          returnDocument: 'after'
-        }
-      );
+        );
+      } else {
+        // Si no existe, insertar nuevo documento
+        result = await collection.insertOne({
+          ...updateData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
 
+      // Obtener el documento actualizado
+      const updatedData = await collection.findOne({});
+      
       return res.status(200).json({
         success: true,
         message: 'Datos guardados exitosamente',
-        data: result.value
+        data: updatedData
       });
     }
 
@@ -87,15 +94,9 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('❌ Error en /api/personal-data:', error.message);
     
-    // Dar más detalles del error
-    let errorMessage = error.message;
-    if (errorMessage.includes('MONGODB_URI')) {
-      errorMessage = 'Error de configuración: MONGODB_URI no está definida. Verifica las variables de entorno en Vercel.';
-    }
-    
     return res.status(500).json({
       success: false,
-      error: errorMessage
+      error: error.message
     });
   }
 }
