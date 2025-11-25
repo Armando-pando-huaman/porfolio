@@ -1,28 +1,32 @@
 import React, { useEffect, useState } from 'react';
 
 function App() {
-  const [connectionStatus, setConnectionStatus] = useState('Iniciando prueba...');
+  const [connectionStatus, setConnectionStatus] = useState('Iniciando...');
   const [certifications, setCertifications] = useState([]);
 
   useEffect(() => {
     async function testConnection() {
       try {
-        setConnectionStatus('🔌 Probando conexión simple...');
+        setConnectionStatus('🔌 Probando conexión...');
         
-        // Conexión DIRECTA sin clientPromise
-        const response = await fetch('/api/test-connection');
+        const response = await fetch('/api/test');
+        
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (data.success) {
-          setConnectionStatus(`✅ CONEXIÓN EXITOSA - ${data.count} certificaciones`);
-          setCertifications(data.certifications || []);
+          setConnectionStatus(`✅ CONECTADO - ${data.count} certificaciones`);
+          setCertifications(data.certifications);
         } else {
-          setConnectionStatus('❌ Error: ' + data.error);
+          setConnectionStatus(`❌ Error: ${data.error}`);
         }
         
       } catch (error) {
-        setConnectionStatus('❌ Error de conexión');
-        console.error('Error:', error);
+        setConnectionStatus(`❌ Error: ${error.message}`);
+        console.error('Error completo:', error);
       }
     }
 
@@ -34,7 +38,7 @@ function App() {
       <h1>Armando Pando - Portfolio</h1>
       <h2>Estado: {connectionStatus}</h2>
       
-      {certifications.length > 0 && (
+      {certifications.length > 0 ? (
         <div>
           <h3>📊 Certificaciones encontradas: {certifications.length}</h3>
           <div style={{ display: 'grid', gap: '10px', marginTop: '20px' }}>
@@ -64,6 +68,8 @@ function App() {
             ))}
           </div>
         </div>
+      ) : connectionStatus.includes('✅') && (
+        <p>✅ Conexión exitosa pero no hay certificaciones en la base de datos</p>
       )}
     </div>
   );
