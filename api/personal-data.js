@@ -46,49 +46,33 @@ export default async function handler(req, res) {
       });
     }
 
-    if (req.method === 'POST' || req.method === 'PUT') {
-      const data = req.body;
-      
-      // Eliminar _id completamente para evitar el error de campo inmutable
-      const { _id, ...updateData } = data;
-      
-      // Buscar si ya existe un documento
-      const existingDoc = await collection.findOne({});
-      
-      if (existingDoc) {
-        // Si existe, actualizar sin incluir _id
-        const result = await collection.updateOne(
-          { _id: existingDoc._id },
-          { 
-            $set: {
-              ...updateData,
-              updatedAt: new Date()
-            }
-          }
-        );
-
-        if (result.modifiedCount === 0) {
-          console.log('⚠️ No se realizaron cambios en los datos');
-        }
-      } else {
-        // Si no existe, insertar nuevo documento
-        const result = await collection.insertOne({
-          ...updateData,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-        console.log('✅ Nuevo documento de datos personales creado');
+   if (req.method === 'POST' || req.method === 'PUT') {
+  const data = req.body;
+  
+  // Eliminar _id y cualquier campo MongoDB interno
+  const { _id, ...updateData } = data;
+  
+  // Usar findOneAndUpdate que maneja mejor los upserts
+  const result = await collection.findOneAndUpdate(
+    {}, // Filtro vacío para encontrar cualquier documento
+    { 
+      $set: {
+        ...updateData,
+        updatedAt: new Date()
       }
-
-      // Obtener el documento actualizado
-      const updatedData = await collection.findOne({});
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Datos guardados exitosamente',
-        data: updatedData
-      });
+    },
+    { 
+      upsert: true,
+      returnDocument: 'after' // Devuelve el documento actualizado
     }
+  );
+
+  return res.status(200).json({
+    success: true,
+    message: 'Datos guardados exitosamente',
+    data: result.value
+  });
+}
 
     return res.status(405).json({ 
       success: false, 
