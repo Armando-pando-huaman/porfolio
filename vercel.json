@@ -13,7 +13,7 @@
       "src": "api/**/*.js",
       "use": "@vercel/node",
       "config": {
-        "runtime": "nodejs24.x"
+        "runtime": "nodejs18.x"
       }
     }
   ],
@@ -21,13 +21,6 @@
     {
       "src": "/api/(.*)",
       "dest": "/api/$1"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
     },
     {
       "src": "/(.*)",
