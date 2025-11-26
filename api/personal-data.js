@@ -1,4 +1,4 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 
 const uri = process.env.MONGODB_URI;
 let cachedClient = null;
@@ -7,7 +7,7 @@ async function connectToDatabase() {
   if (cachedClient) return cachedClient;
   
   if (!uri) {
-    throw new Error('❌ MONGODB_URI no está definida en las variables de entorno');
+    throw new Error('❌ MONGODB_URI no está definida');
   }
   
   const client = new MongoClient(uri, {
@@ -27,7 +27,7 @@ async function connectToDatabase() {
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -41,40 +41,106 @@ module.exports = async function handler(req, res) {
     const db = client.db("porfolio");
     const collection = db.collection("personal_data");
 
+    // GET - Obtener todos los perfiles o uno específico
     if (req.method === 'GET') {
-      const data = await collection.findOne({});
+      const { id } = req.query;
       
-      return res.status(200).json({
+      if (id) {
+        // Obtener perfil específico
+        const data = await collection.findOne({ _id: new ObjectId(id) });
+        return res.status(200).json({
+          success: true,
+          data: data || null
+        });
+      } else {
+        // Obtener todos los perfiles
+        const data = await collection.find({}).sort({ createdAt: -1 }).toArray();
+        return res.status(200).json({
+          success: true,
+          data: data
+        });
+      }
+    }
+
+    // POST - Crear nuevo perfil
+    if (req.method === 'POST') {
+      const data = req.body;
+      
+      const result = await collection.insertOne({
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      const insertedData = await collection.findOne({ _id: result.insertedId });
+      
+      return res.status(201).json({
         success: true,
-        data: data || null
+        message: 'Perfil creado exitosamente',
+        data: insertedData
       });
     }
 
-    if (req.method === 'POST' || req.method === 'PUT') {
-      const data = req.body;
+    // PUT - Actualizar perfil existente
+    if (req.method === 'PUT') {
+      const { _id, ...updateData } = req.body;
       
-      // Crear copia sin _id
-      const { _id, ...updateData } = data;
+      if (!_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'ID es requerido para actualizar'
+        });
+      }
       
-      // Usar findOneAndUpdate con upsert
-      const result = await collection.findOneAndUpdate(
-        {}, // Buscar cualquier documento
+      const result = await collection.updateOne(
+        { _id: new ObjectId(_id) },
         { 
           $set: {
             ...updateData,
             updatedAt: new Date()
           }
-        },
-        { 
-          upsert: true,
-          returnDocument: 'after'
         }
       );
 
+      if (result.matchedCount === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Perfil no encontrado'
+        });
+      }
+
+      const updatedData = await collection.findOne({ _id: new ObjectId(_id) });
+      
       return res.status(200).json({
         success: true,
-        message: 'Datos guardados exitosamente',
-        data: result.value
+        message: 'Perfil actualizado exitosamente',
+        data: updatedData
+      });
+    }
+
+    // DELETE - Eliminar perfil
+    if (req.method === 'DELETE') {
+      const { _id } = req.body;
+      
+      if (!_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'ID es requerido para eliminar'
+        });
+      }
+      
+      const result = await collection.deleteOne({ _id: new ObjectId(_id) });
+      
+      if (result.deletedCount === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Perfil no encontrado'
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Perfil eliminado exitosamente'
       });
     }
 
@@ -85,16 +151,9 @@ module.exports = async function handler(req, res) {
 
   } catch (error) {
     console.error('❌ Error en /api/personal-data:', error.message);
-    
-    // Dar más detalles del error
-    let errorMessage = error.message;
-    if (errorMessage.includes('MONGODB_URI')) {
-      errorMessage = 'Error de configuración: MONGODB_URI no está definida. Verifica las variables de entorno en Vercel.';
-    }
-    
     return res.status(500).json({
       success: false,
-      error: errorMessage
+      error: error.message
     });
   }
 };

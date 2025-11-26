@@ -1,15 +1,15 @@
-import { MongoClient } from 'mongodb';
+const { MongoClient, ObjectId } = require('mongodb');
 
 const uri = process.env.MONGODB_URI;
-
 let cachedClient = null;
-let cachedDb = null;
 
 async function connectToDatabase() {
-  if (cachedClient && cachedDb) {
-    return { client: cachedClient, db: cachedDb };
+  if (cachedClient) return cachedClient;
+  
+  if (!uri) {
+    throw new Error('❌ MONGODB_URI no está definida');
   }
-
+  
   const client = new MongoClient(uri, {
     serverSelectionTimeoutMS: 5000,
     connectTimeoutMS: 10000,
@@ -17,21 +17,17 @@ async function connectToDatabase() {
 
   try {
     await client.connect();
-    const db = client.db("porfolio");
-    
     cachedClient = client;
-    cachedDb = db;
-    
-    return { client, db };
+    return client;
   } catch (error) {
     console.error('❌ Error conectando a MongoDB:', error.message);
     throw error;
   }
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -41,46 +37,113 @@ export default async function handler(req, res) {
   console.log(`🛠️ ${req.method} /api/skills`);
 
   try {
-    const { db } = await connectToDatabase();
+    const client = await connectToDatabase();
+    const db = client.db("porfolio");
     const collection = db.collection("skills");
 
+    // GET - Obtener todas las habilidades o unas específicas
     if (req.method === 'GET') {
-      const skills = await collection.findOne({});
+      const { id } = req.query;
       
-      return res.status(200).json({
+      if (id) {
+        // Obtener habilidades específicas
+        const data = await collection.findOne({ _id: new ObjectId(id) });
+        return res.status(200).json({
+          success: true,
+          data: data || null
+        });
+      } else {
+        // Obtener todas las habilidades
+        const data = await collection.find({}).sort({ createdAt: -1 }).toArray();
+        return res.status(200).json({
+          success: true,
+          data: data
+        });
+      }
+    }
+
+    // POST - Crear nuevas habilidades
+    if (req.method === 'POST') {
+      const data = req.body;
+      
+      const result = await collection.insertOne({
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      const insertedData = await collection.findOne({ _id: result.insertedId });
+      
+      return res.status(201).json({
         success: true,
-        data: skills || null
+        message: 'Habilidades creadas exitosamente',
+        data: insertedData
       });
     }
 
-    // En ambas APIs, cambia la parte de POST/PUT:
-
-if (req.method === 'POST' || req.method === 'PUT') {
-  const data = req.body;
-  
-  // Eliminar _id para evitar el error de campo inmutable
-  const { _id, ...dataWithoutId } = data;
-  
-  const result = await collection.updateOne(
-    {},
-    { 
-      $set: {
-        ...dataWithoutId,
-        updatedAt: new Date()
+    // PUT - Actualizar habilidades existentes
+    if (req.method === 'PUT') {
+      const { _id, ...updateData } = req.body;
+      
+      if (!_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'ID es requerido para actualizar'
+        });
       }
-    },
-    { upsert: true }
-  );
+      
+      const result = await collection.updateOne(
+        { _id: new ObjectId(_id) },
+        { 
+          $set: {
+            ...updateData,
+            updatedAt: new Date()
+          }
+        }
+      );
 
-  // Obtener el documento actualizado
-  const updatedData = await collection.findOne({});
-    
-  return res.status(200).json({
-    success: true,
-    message: 'Datos guardados exitosamente',
-    data: updatedData
-  });
-}
+      if (result.matchedCount === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Habilidades no encontradas'
+        });
+      }
+
+      const updatedData = await collection.findOne({ _id: new ObjectId(_id) });
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Habilidades actualizadas exitosamente',
+        data: updatedData
+      });
+    }
+
+    // DELETE - Eliminar habilidades
+    if (req.method === 'DELETE') {
+      const { _id } = req.body;
+      
+      if (!_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'ID es requerido para eliminar'
+        });
+      }
+      
+      const result = await collection.deleteOne({ _id: new ObjectId(_id) });
+      
+      if (result.deletedCount === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Habilidades no encontradas'
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Habilidades eliminadas exitosamente'
+      });
+    }
+
     return res.status(405).json({ 
       success: false, 
       error: 'Método no permitido' 
@@ -88,10 +151,9 @@ if (req.method === 'POST' || req.method === 'PUT') {
 
   } catch (error) {
     console.error('❌ Error en /api/skills:', error.message);
-    
     return res.status(500).json({
       success: false,
       error: error.message
     });
   }
-}
+};

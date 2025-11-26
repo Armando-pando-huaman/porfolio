@@ -2,6 +2,9 @@
 const API_BASE = '/api';
 
 const apiService = {
+
+
+
   personalData: {
     save: async (data) => {
       // Eliminar _id antes de enviar
@@ -129,17 +132,7 @@ const apiService = {
     }
   },
 
-  // ========== FUNCIONES ESPECIALES ==========
-  seed: {
-    // Función para insertar datos iniciales de ejemplo
-    initialData: async () => {
-      const response = await fetch(`${API_BASE}/seed/initial-data`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      return await response.json();
-    }
-  },
+  // ========== FUNCIONES ESPECIALES =========
 
   health: {
     // Verificar estado del servidor y conexión a MongoDB

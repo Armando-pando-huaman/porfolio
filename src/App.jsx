@@ -16,7 +16,36 @@ function App() {
 
   // Estado para modo edición
   const [editMode, setEditMode] = useState(false);
-  const [editingSection, setEditingSection] = useState('');
+    // En App.jsx - Agrega este estado:
+  const [editingSection, setEditingSection] = useState(null);
+
+// Función para activar edición:
+const startEditing = (section) => {
+  setEditingSection(section);
+};
+
+// Función para cerrar edición:
+const stopEditing = () => {
+  setEditingSection(null);
+};
+
+// En cada sección, cambia el botón de edición:
+<button 
+  className="btn-edit"
+  onClick={() => startEditing('personal')}
+>
+  ✏️ Editar Perfil
+</button>
+
+// Agrega el EditPanel al final del return:
+{editingSection && (
+  <EditPanel
+    section={editingSection}
+    currentData={{ personalData, experience, projects, skills, certifications }}
+    onSave={loadAllData}
+    onClose={stopEditing}
+  />
+)}
 
   // Función para cargar todos los datos desde MongoDB
   const loadAllData = async () => {
