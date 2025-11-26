@@ -1,30 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-const Header = ({ profile }) => {
-  const scrollToSection = (sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+const Header = () => {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await fetch('/api/profile');
+      if (response.ok) {
+        const data = await response.json();
+        setProfile(data);
+      } else {
+        console.error('Error fetching profile');
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  if (loading) return <div>Cargando...</div>;
+  if (!profile) return <div>Error cargando perfil</div>;
+
   return (
-    <header className="header">
-      <nav className="nav">
-        <div className="logo">
-          <h1>{profile?.name || "A.P."}</h1>
-        </div>
-        <ul className="nav-links">
-          <li><a href="#inicio" onClick={(e) => { e.preventDefault(); scrollToSection('inicio'); }}>Inicio</a></li>
-          <li><a href="#sobre-mi" onClick={(e) => { e.preventDefault(); scrollToSection('sobre-mi'); }}>Sobre Mí</a></li>
-          <li><a href="#experiencia" onClick={(e) => { e.preventDefault(); scrollToSection('experiencia'); }}>Experiencia</a></li>
-          <li><a href="#proyectos" onClick={(e) => { e.preventDefault(); scrollToSection('proyectos'); }}>Proyectos</a></li>
-          <li><a href="#habilidades" onClick={(e) => { e.preventDefault(); scrollToSection('habilidades'); }}>Habilidades</a></li>
-          <li><a href="#educacion" onClick={(e) => { e.preventDefault(); scrollToSection('educacion'); }}>Educación</a></li>
-          <li><a href="#certificaciones" onClick={(e) => { e.preventDefault(); scrollToSection('certificaciones'); }}>Certificaciones</a></li>
-          <li><a href="#contacto" onClick={(e) => { e.preventDefault(); scrollToSection('contacto'); }}>Contacto</a></li>
-        </ul>
-      </nav>
+    <header>
+      <h1>{profile.name}</h1>
+      <p>{profile.title}</p>
+      <p>{profile.email}</p>
+      <p>{profile.location}</p>
     </header>
   );
 };
