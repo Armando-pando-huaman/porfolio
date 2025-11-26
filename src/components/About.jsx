@@ -6,16 +6,16 @@ const About = ({ profile }) => {
       <div className="container">
         <h2>Sobre Mí</h2>
         <div className="about-content">
-          <p>{profile?.description || 'Desarrollador Full Stack Junior con experiencia en más de 15 proyectos de desarrollo web utilizando arquitectura MVC, APIs RESTful y bases de datos relacionales...'}</p>
+          <p>{profile?.description || "Completa tu descripción profesional en el panel de administración."}</p>
           
           <div className="about-details">
             <div className="detail-item">
               <strong>Disponibilidad:</strong>
-              <span>{profile?.availability || 'Inmediata'}</span>
+              <span>{profile?.availability || "Por definir"}</span>
             </div>
             <div className="detail-item">
               <strong>Inglés:</strong>
-              <span>{profile?.english || 'Básico – Técnico'}</span>
+              <span>{profile?.english || "Por definir"}</span>
             </div>
           </div>
         </div>

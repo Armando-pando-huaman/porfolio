@@ -10,34 +10,41 @@ async function handler(req, res) {
     const client = await clientPromise;
     const db = client.db('portfolio');
     
-    // Para subida de archivos, necesitaríamos un middleware como multer
-    // Pero en Vercel Functions es más complejo, así que usaremos base64 por ahora
-    const { imageData, fileName, collection, documentId } = req.body;
+    const { imageData, fileName, collection, documentId, type } = req.body;
     
     if (!imageData || !fileName) {
       return res.status(400).json({ error: 'Datos de imagen requeridos' });
     }
 
-    // Guardar la imagen en base64 en la colección correspondiente
-    const imageDoc = {
+    const fileDoc = {
       fileName,
-      imageData,
+      fileData: imageData, // Base64 encoded
+      type: type || 'image',
       uploadedAt: new Date(),
       collection,
       documentId
     };
 
-    const result = await db.collection('uploads').insertOne(imageDoc);
+    const result = await db.collection('files').insertOne(fileDoc);
+    
+    // Actualizar el documento principal con referencia al archivo
+    if (collection && documentId) {
+      const updateField = type === 'certificate' ? 'certificateImage' : 'image';
+      await db.collection(collection).updateOne(
+        { _id: new require('mongodb').ObjectId(documentId) },
+        { $set: { [updateField]: result.insertedId.toString() } }
+      );
+    }
     
     res.status(200).json({ 
       success: true, 
-      imageId: result.insertedId,
-      message: 'Imagen subida correctamente'
+      fileId: result.insertedId,
+      message: 'Archivo subido correctamente'
     });
     
   } catch (error) {
     console.error('Error en API upload:', error);
-    res.status(500).json({ error: 'Error al subir imagen' });
+    res.status(500).json({ error: 'Error al subir archivo' });
   }
 }
 
