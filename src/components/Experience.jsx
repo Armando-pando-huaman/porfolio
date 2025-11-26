@@ -1,41 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-const Experience = ({ experiences }) => {
-  if (!experiences || experiences.length === 0) {
-    return (
-      <section id="experiencia" className="experience">
-        <div className="container">
-          <h2>Experiencia Laboral</h2>
-          <div className="empty-state">
-            <p>No hay experiencias registradas. Agrega tu experiencia laboral desde el panel de administración.</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
+const Experience = () => {
+  const [experiences, setExperiences] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchExperiences();
+  }, []);
+
+  const fetchExperiences = async () => {
+    try {
+      const response = await fetch('/api/experiences');
+      const data = await response.json();
+      setExperiences(data);
+    } catch (error) {
+      console.error('Error fetching experiences:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div>Cargando experiencias...</div>;
 
   return (
-    <section id="experiencia" className="experience">
-      <div className="container">
-        <h2>Experiencia Laboral</h2>
-        <div className="experiences-grid">
-          {experiences.map((exp, index) => (
-            <div key={index} className="experience-card">
-              <div className="experience-header">
-                <h3>{exp.company}</h3>
-                <span className="date">{exp.startDate} - {exp.endDate}</span>
-              </div>
-              <h4 className="position">{exp.position}</h4>
-              <ul className="experience-list">
-                {exp.description.map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
+    <div>
+      <h2>Experiencia Laboral</h2>
+      {experiences.map(exp => (
+        <div key={exp._id} className="experience-item">
+          <h3>{exp.position} - {exp.company}</h3>
+          <p>{exp.period}</p>
+          <p>{exp.description}</p>
         </div>
-      </div>
-    </section>
+      ))}
+    </div>
   );
 };
 
