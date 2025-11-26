@@ -1,26 +1,19 @@
 {
   "name": "porfolio",
-  "version": "1.0.0",
+  "version": "1.0.0", 
   "type": "module",
-  "description": "Portfolio personal con React, Vite y MongoDB",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "start": "vite preview",
     "preview": "vite preview"
   },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "mongodb": "^6.3.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1"
+    "mongodb": "^6.3.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
     "vite": "^4.0.0"
-  },
-  "engines": {
-    "node": "18.x"
   }
 }
