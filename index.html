@@ -1,82 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Armando Pando - Desarrollador Full Stack Junior</title>
-    <meta name="description" content="Portfolio de Armando Edgardo Pando Huaman - Desarrollador Full Stack Junior con experiencia en PHP, .NET, JavaScript, MongoDB y más de 15 proyectos desarrollados">
-    
-    <!-- Fuentes -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Loading inicial -->
-    <style>
-        .initial-loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-family: 'Inter', sans-serif;
-            z-index: 9999;
-        }
-        
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            margin-bottom: 1rem;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .loading-text {
-            font-size: 1.1rem;
-            font-weight: 500;
-        }
-        
-        body.loaded .initial-loading {
-            display: none;
-        }
-
-        /* Evitar FOUC */
-        body {
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
-</head>
-<body>
-    <!-- Loading inicial -->
-    <div class="initial-loading">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">Cargando portfolio...</div>
-    </div>
-    
-    <!-- Root de React -->
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Armando Pando - Portfolio</title>
+  </head>
+  <body>
     <div id="root"></div>
-
-    <!-- SCRIPT RESTAURADO - Esto es necesario -->
     <script type="module" src="/src/main.jsx"></script>
-    
-    <script>
-        // Ocultar loading después de 5 segundos máximo (fallback)
-        setTimeout(() => {
-            document.body.classList.add('loaded');
-        }, 5000);
-    </script>
-</body>
+  </body>
 </html>

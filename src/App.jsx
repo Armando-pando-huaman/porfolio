@@ -1,135 +1,75 @@
-import React, { useState, useEffect } from 'react';
-import './styles/App.css';
-import Header from './components/Header';
-import Hero from './components/Hero.jsx';
-import About from './components/About';
-import Experience from './components/Experience';
-import Projects from './components/Projects';
-import Skills from './components/Skills';
-import Education from './components/Education';
-import Certifications from './components/Certifications';
-import Contact from './components/Contact';
-import AdminPanel from './components/AdminPanel';
-
-// Estructuras vacías por defecto
-const emptyData = {
-  profile: {
-    name: "",
-    title: "",
-    location: "",
-    phone: "",
-    email: "",
-    linkedin: "",
-    description: "",
-    availability: "",
-    english: "",
-    image: "" // Para la foto de perfil
-  },
-  experiences: [],
-  projects: [],
-  certifications: [],
-  skills: {
-    frontend: [],
-    backend: [],
-    databases: [],
-    devops: [],
-    infrastructure: []
-  }
-};
+import React, { useState, useEffect } from 'react'
+import './App.css'
 
 function App() {
-  const [data, setData] = useState(emptyData);
-  const [loading, setLoading] = useState(true);
-  const [usingDefaultData, setUsingDefaultData] = useState(false);
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   const fetchData = async () => {
     try {
-      const endpoints = [
-        '/api/profile',
-        '/api/experiences', 
-        '/api/projects',
-        '/api/certifications',
-        '/api/skills'
-      ];
-
-      const responses = await Promise.allSettled(
-        endpoints.map(endpoint => 
-          fetch(endpoint)
-            .then(res => {
-              if (!res.ok) throw new Error('Network response was not ok');
-              return res.json();
-            })
-        )
-      );
-
-      const allFailed = responses.every(response => response.status === 'rejected');
-      
-      if (allFailed) {
-        setUsingDefaultData(true);
-        console.log('🔧 Modo demo: Sin conexión a MongoDB');
-      } else {
-        // Combinar datos vacíos con los datos de la API
-        setData({
-          profile: responses[0].status === 'fulfilled' && Object.keys(responses[0].value).length > 0 
-            ? { ...emptyData.profile, ...responses[0].value } 
-            : emptyData.profile,
-          experiences: responses[1].status === 'fulfilled' && responses[1].value.length > 0 
-            ? responses[1].value 
-            : emptyData.experiences,
-          projects: responses[2].status === 'fulfilled' && responses[2].value.length > 0 
-            ? responses[2].value 
-            : emptyData.projects,
-          certifications: responses[3].status === 'fulfilled' && responses[3].value.length > 0 
-            ? responses[3].value 
-            : emptyData.certifications,
-          skills: responses[4].status === 'fulfilled' && Object.keys(responses[4].value).length > 0 
-            ? { ...emptyData.skills, ...responses[4].value } 
-            : emptyData.skills
-        });
-        setUsingDefaultData(false);
+      // Test API connection
+      const response = await fetch('/api/profile')
+      if (response.ok) {
+        const data = await response.json()
+        setProfile(data)
       }
     } catch (error) {
-      console.error('Error cargando datos:', error);
-      setUsingDefaultData(true);
+      console.error('Error fetching data:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  }
 
   if (loading) {
     return (
-      <div className="loading">
-        <div className="spinner"></div>
-        <div className="loading-text">Cargando portfolio...</div>
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <h1>Cargando Portfolio...</h1>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="app">
-      {usingDefaultData && (
-        <div className="demo-banner">
-          <div className="demo-message">
-            ⚠️ Modo demostración - Conecta MongoDB en Vercel para gestionar tu contenido
+    <div className="App">
+      <header style={{ padding: '20px', background: '#f5f5f5' }}>
+        <h1>Portfolio de {profile?.name || 'Armando Pando'}</h1>
+        <p>{profile?.title || 'Desarrollador Full Stack'}</p>
+        {profile ? (
+          <div>
+            <p>Email: {profile.email}</p>
+            <p>Teléfono: {profile.phone}</p>
+            <p>Ubicación: {profile.location}</p>
           </div>
-        </div>
-      )}
-      <Header profile={data.profile} />
-      <Hero profile={data.profile} />
-      <About profile={data.profile} />
-      <Experience experiences={data.experiences} />
-      <Projects projects={data.projects} />
-      <Skills skills={data.skills} />
-      <Education profile={data.profile} />
-      <Certifications certifications={data.certifications} />
-      <Contact profile={data.profile} />
-      {!usingDefaultData && <AdminPanel onDataUpdate={fetchData} />}
+        ) : (
+          <p>No se pudieron cargar los datos del perfil</p>
+        )}
+      </header>
+
+      <main style={{ padding: '20px' }}>
+        <section>
+          <h2>Proyectos Destacados</h2>
+          <p>Los proyectos se cargarán pronto...</p>
+        </section>
+
+        <section>
+          <h2>Habilidades Técnicas</h2>
+          <p>Las habilidades se cargarán pronto...</p>
+        </section>
+
+        <section>
+          <h2>Experiencia</h2>
+          <p>La experiencia se cargará pronto...</p>
+        </section>
+      </main>
+
+      <footer style={{ padding: '20px', background: '#333', color: 'white', textAlign: 'center' }}>
+        <p>&copy; 2024 Armando Pando. Todos los derechos reservados.</p>
+      </footer>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
