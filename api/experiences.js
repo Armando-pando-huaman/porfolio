@@ -1,29 +1,25 @@
-const clientPromise = require('../src/utils/mongodb');
+import { connectToDatabase } from '../src/utils/mongodb';
 
-async function handler(req, res) {
+export default async function handler(req, res) {
   try {
-    const client = await clientPromise;
-    const db = client.db('portfolio');
-
+    const { db } = await connectToDatabase();
+    
     switch (req.method) {
       case 'GET':
         const experiences = await db.collection('experiences').find({}).toArray();
         res.status(200).json(experiences);
         break;
-
+      
       case 'POST':
-        const result = await db.collection('experiences').insertOne(req.body);
-        res.status(200).json({ success: true, result });
+        const experience = req.body;
+        const result = await db.collection('experiences').insertOne(experience);
+        res.status(201).json(result);
         break;
-
+      
       default:
-        res.setHeader('Allow', ['GET', 'POST']);
-        res.status(405).end(`Method ${req.method} Not Allowed`);
+        res.status(405).json({ error: 'Method not allowed' });
     }
   } catch (error) {
-    console.error('Error en API experiences:', error);
-    res.status(500).json({ error: 'Error de servidor' });
+    res.status(500).json({ error: error.message });
   }
 }
-
-module.exports = handler;

@@ -1,4 +1,4 @@
-// lib/mongodb.js o utils/database.js
+// src/utils/mongodb.js
 import { MongoClient } from 'mongodb';
 
 const MONGODB_URI = process.env.MONGODB_URL;

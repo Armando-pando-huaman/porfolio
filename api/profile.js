@@ -1,38 +1,29 @@
-const clientPromise = require('../src/utils/mongodb');
+import { connectToDatabase } from '../src/utils/mongodb';
 
-async function handler(req, res) {
+export default async function handler(req, res) {
   try {
-    const client = await clientPromise;
-    const db = client.db('portfolio');
+    const { db } = await connectToDatabase();
     
     switch (req.method) {
       case 'GET':
         const profile = await db.collection('profile').findOne({});
-        res.status(200).json(profile || {});
+        res.status(200).json(profile);
         break;
-        
+      
       case 'POST':
+        const profileData = req.body;
         const result = await db.collection('profile').updateOne(
-          {},
-          { $set: req.body },
+          {}, 
+          { $set: profileData }, 
           { upsert: true }
         );
-        res.status(200).json({ success: true, result });
+        res.status(200).json(result);
         break;
-        
+      
       default:
-        res.setHeader('Allow', ['GET', 'POST']);
-        res.status(405).end(`Method ${req.method} Not Allowed`);
+        res.status(405).json({ error: 'Method not allowed' });
     }
   } catch (error) {
-    console.error('Error en API profile:', error);
-    // Si no hay MongoDB, devolver un objeto vacío
-    if (error.message.includes('MongoDB URI')) {
-      res.status(200).json({});
-    } else {
-      res.status(500).json({ error: 'Error de servidor' });
-    }
+    res.status(500).json({ error: error.message });
   }
 }
-
-module.exports = handler;
