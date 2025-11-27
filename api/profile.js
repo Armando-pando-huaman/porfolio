@@ -1,30 +1,31 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
+
+let cachedClient = null;
+let cachedDb = null;
 
 async function connectToDatabase() {
-  // CAMBIO: MONGODB_URL → MONGODB_URI
-  if (!process.env.MONGODB_URI) {
-    console.log('❌ MONGODB_URI no configurada');
-    return null;
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
   }
 
-  try {
-    // CAMBIO: MONGODB_URL → MONGODB_URI
-    const client = new MongoClient(process.env.MONGODB_URI);
-    await client.connect();
-    console.log('✅ Conectado a MongoDB');
-    return {
-      client,
-      db: client.db('portfolio')
-    };
-  } catch (error) {
-    console.error('❌ Error conectando a MongoDB:', error.message);
-    return null;
-  }
+  const client = await MongoClient.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+
+  const db = client.db('porfolio');
+
+  cachedClient = client;
+  cachedDb = db;
+
+  return { client, db };
 }
 
 module.exports = async function handler(req, res) {
+  // CORS
+  res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -32,41 +33,28 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const connection = await connectToDatabase();
-    
-    if (!connection) {
-      return res.status(200).json({
-        ...staticProfile,
-        _source: 'static_data',
-        message: 'MONGODB_URL no configurada - usando datos estáticos'
-      });
+    const { db } = await connectToDatabase();
+
+    // GET
+    if (req.method === 'GET') {
+      const profile = await db.collection('profile').findOne({});
+      return res.status(200).json(profile || {});
     }
 
-    const { db, client } = connection;
-    const profile = await db.collection('profile').findOne({});
-    
-    await client.close();
-
-    if (profile) {
-      return res.status(200).json({
-        ...profile,
-        _source: 'mongodb_database'
-      });
-    } else {
-      return res.status(200).json({
-        ...staticProfile,
-        _source: 'static_data_empty_db',
-        message: 'Conectado a MongoDB pero no hay datos'
-      });
+    // POST/PUT
+    if (req.method === 'POST' || req.method === 'PUT') {
+      const data = req.body;
+      const result = await db.collection('profile').updateOne(
+        {},
+        { $set: data },
+        { upsert: true }
+      );
+      return res.status(200).json({ success: true, result });
     }
 
+    return res.status(405).json({ error: 'Método no permitido' });
   } catch (error) {
-    console.error('Error:', error.message);
-    return res.status(200).json({
-      ...staticProfile,
-      _source: 'static_data_error',
-      error: error.message,
-      message: 'Error de conexión - usando datos estáticos'
-    });
+    console.error('Error en profile:', error);
+    return res.status(500).json({ error: error.message });
   }
 };
