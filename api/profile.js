@@ -1,30 +1,25 @@
 const { MongoClient } = require('mongodb');
 
-// Datos estáticos
-const staticProfile = {
-  name: "Armando Pando",
-  title: "Desarrollador Full Stack Junior",
-  email: "armandopando27@gmail.com",
-  phone: "+51 904 683 731",
-  location: "Lima, Perú",
-  about: "Desarrollador Full Stack Junior con experiencia en más de 18 proyectos de desarrollo web.",
-  socialLinks: {
-    github: "https://github.com/armandopando",
-    linkedin: "https://linkedin.com/in/armando-pando-huaman"
-  }
-};
-
 async function connectToDatabase() {
-  if (!process.env.MONGODB_URL) {
+  // CAMBIO: MONGODB_URL → MONGODB_URI
+  if (!process.env.MONGODB_URI) {
+    console.log('❌ MONGODB_URI no configurada');
     return null;
   }
 
-  const client = new MongoClient(process.env.MONGODB_URL);
-  await client.connect();
-  return {
-    client,
-    db: client.db('portfolio')
-  };
+  try {
+    // CAMBIO: MONGODB_URL → MONGODB_URI
+    const client = new MongoClient(process.env.MONGODB_URI);
+    await client.connect();
+    console.log('✅ Conectado a MongoDB');
+    return {
+      client,
+      db: client.db('portfolio')
+    };
+  } catch (error) {
+    console.error('❌ Error conectando a MongoDB:', error.message);
+    return null;
+  }
 }
 
 module.exports = async function handler(req, res) {
