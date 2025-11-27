@@ -1,6 +1,6 @@
 const { MongoClient } = require('mongodb');
 
-const MONGODB_URI = 'mongodb+srv://Armandopando:Mongo123@cluster0.pmy61xe.mongodb.net/portfolio?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_URI = 'mongodb+srv://Armandopando:Mongo123@cluster0.pmy6lxe.mongodb.net/portfolio?retryWrites=true&w=majority&appName=Cluster0';
 
 async function testConnection() {
   let client;
