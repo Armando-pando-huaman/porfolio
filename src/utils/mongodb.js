@@ -2,37 +2,35 @@ import { MongoClient } from 'mongodb';
 
 const MONGODB_URI = process.env.MONGODB_URL;
 
+// NO lances error - solo devuelve null
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URL environment variable.');
+  console.log('⚠️ MONGODB_URL no está configurada');
 }
 
 let cached = global.mongo;
-
 if (!cached) {
   cached = global.mongo = { conn: null, promise: null };
 }
 
 export async function connectToDatabase() {
+  // Si no hay URL, retorna null inmediatamente
+  if (!MONGODB_URI) {
+    return null;
+  }
+
   if (cached.conn) {
     return cached.conn;
   }
 
   if (!cached.promise) {
-    const opts = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      maxIdleTimeMS: 10000,
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 20000,
-    };
-
-    cached.promise = MongoClient.connect(MONGODB_URI, opts).then((client) => {
+    cached.promise = MongoClient.connect(MONGODB_URI).then((client) => {
       return {
         client,
-        db: client.db('portfolio'),
+        db: client.db(),
       };
     });
   }
+  
   cached.conn = await cached.promise;
   return cached.conn;
 }
