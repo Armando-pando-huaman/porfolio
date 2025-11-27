@@ -1,4 +1,4 @@
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import { MongoClient } from 'mongodb';
 
 const MONGODB_URI = process.env.MONGODB_URL;
 
@@ -21,13 +21,15 @@ export async function connectToDatabase() {
     const opts = {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverApi: ServerApiVersion.v1,
+      maxIdleTimeMS: 10000,
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 20000,
     };
 
     cached.promise = MongoClient.connect(MONGODB_URI, opts).then((client) => {
       return {
         client,
-        db: client.db(),
+        db: client.db('portfolio'),
       };
     });
   }
