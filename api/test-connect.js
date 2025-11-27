@@ -1,43 +1,35 @@
-import { MongoClient } from 'mongodb';
+const { MongoClient } = require('mongodb');
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-
-  // 1. Verificar variable
-  if (!process.env.MONGODB_URL) {
-    return res.status(200).json({
-      status: '❌ FALTA VARIABLE',
-      message: 'MONGODB_URL no configurada en Vercel'
-    });
-  }
-
-  let client;
-  
+module.exports = async function handler(req, res) {
   try {
-    // 2. Intentar conexión simple
-    client = new MongoClient(process.env.MONGODB_URL, {
-      serverSelectionTimeoutMS: 5000
-    });
+    const MONGODB_URI = process.env.MONGODB_URI;
+    
+    if (!MONGODB_URI) {
+      return res.status(200).json({ 
+        status: '❌ MONGODB_URI no configurada',
+        message: 'La variable no existe en Vercel' 
+      });
+    }
 
+    const client = new MongoClient(MONGODB_URI);
     await client.connect();
     
-    // 3. Verificar base de datos
     const db = client.db('portfolio');
     const collections = await db.listCollections().toArray();
     
+    await client.close();
+
     res.status(200).json({
-      status: '✅ CONEXIÓN EXITOSA',
+      status: '✅ Conexión exitosa',
       collections: collections.map(c => c.name),
-      message: 'MongoDB + Vercel funcionando correctamente'
+      message: 'MongoDB conectado correctamente'
     });
 
   } catch (error) {
     res.status(200).json({
-      status: '❌ ERROR DE CONEXIÓN',
+      status: '❌ Error de conexión',
       error: error.message,
-      urlUsed: process.env.MONGODB_URL.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')
+      message: 'Problema conectando a MongoDB'
     });
-  } finally {
-    if (client) await client.close();
   }
-}
+};
