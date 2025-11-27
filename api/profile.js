@@ -1,6 +1,6 @@
-import { connectToDatabase } from '../src/utils/mongodb.js';
+const { MongoClient } = require('mongodb');
 
-// Datos estáticos de respaldo
+// Datos estáticos
 const staticProfile = {
   name: "Armando Pando",
   title: "Desarrollador Full Stack Junior",
@@ -14,7 +14,20 @@ const staticProfile = {
   }
 };
 
-export default async function handler(req, res) {
+async function connectToDatabase() {
+  if (!process.env.MONGODB_URL) {
+    return null;
+  }
+
+  const client = new MongoClient(process.env.MONGODB_URL);
+  await client.connect();
+  return {
+    client,
+    db: client.db('portfolio')
+  };
+}
+
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -24,21 +37,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Intentar conectar a MongoDB
     const connection = await connectToDatabase();
     
     if (!connection) {
-      console.log('📦 Usando datos estáticos - MONGODB_URL no configurada');
       return res.status(200).json({
         ...staticProfile,
         _source: 'static_data',
-        message: 'MONGODB_URL no configurada en Vercel - Usando datos estáticos'
+        message: 'MONGODB_URL no configurada - usando datos estáticos'
       });
     }
 
-    const { db } = connection;
+    const { db, client } = connection;
     const profile = await db.collection('profile').findOne({});
     
+    await client.close();
+
     if (profile) {
       return res.status(200).json({
         ...profile,
@@ -48,7 +61,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         ...staticProfile,
         _source: 'static_data_empty_db',
-        message: 'Conectado a MongoDB pero no hay datos en la colección profile'
+        message: 'Conectado a MongoDB pero no hay datos'
       });
     }
 
@@ -58,7 +71,7 @@ export default async function handler(req, res) {
       ...staticProfile,
       _source: 'static_data_error',
       error: error.message,
-      message: 'Error de conexión - Usando datos estáticos'
+      message: 'Error de conexión - usando datos estáticos'
     });
   }
-}
+};

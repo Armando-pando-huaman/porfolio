@@ -1,16 +1,13 @@
-export default async function handler(req, res) {
-  // Mostrar todas las variables de entorno (sin valores sensibles)
+module.exports = async function handler(req, res) {
   const envInfo = {
     hasMongoDB: !!process.env.MONGODB_URL,
-    mongoUrlLength: process.env.MONGODB_URL ? process.env.MONGODB_URL.length : 0,
     mongoUrlPreview: process.env.MONGODB_URL ? 
-      process.env.MONGODB_URL.substring(0, 50) + '...' : 
+      process.env.MONGODB_URL.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@') : 
       'NO CONFIGURADA',
-    allEnvVars: Object.keys(process.env).filter(key => 
-      key.includes('MONGO') || key.includes('VERCEL') || key.includes('NODE')
-    ),
-    nodeEnv: process.env.NODE_ENV
+    allEnvVars: Object.keys(process.env),
+    apiPackageJson: 'COMMONJS',
+    rootPackageJson: 'MODULE'
   };
 
   res.status(200).json(envInfo);
-}
+};
